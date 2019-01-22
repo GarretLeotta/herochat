@@ -1,0 +1,1 @@
+BigBoss (Recorder + Encoder + SockSender)  -->  BigBoss (Decoder + FileWriter)

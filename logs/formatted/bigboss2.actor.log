@@ -1,0 +1,174 @@
+akka://herochat/user/bigbosst2/hc-connection-handler Bad Msg: Bound(/0:0:0:0:0:0:0:1:41332)
+akka://herochat/user/bigbosst2/hc-connection-handler received connection from: /0:0:0:0:0:0:0:1:62103, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 checking incoming peer: /0:0:0:0:0:0:0:1:62103, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 Creating Peer actor: /0:0:0:0:0:0:0:1:62103, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 Peer starting in Reciprocate Mode, connected to /0:0:0:0:0:0:0:1:62103
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 Received Handshake auth message: Vector(Right(AuthTypeUUID(1)), Right(AuthTypeNickname(Mememan)), Right(AuthTypePort(41331))), sending response
+akka://herochat/user/bigbosst2 Received shook notice from: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845]: /0:0:0:0:0:0:0:1:62103, User(1,Mememan), 41331
+akka://herochat/user/bigbosst2 Completing Handshake for: /0:0:0:0:0:0:0:1:62103, User(1,Mememan), Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845], /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 Handshake complete, entering dynamic state
+akka://herochat/user/bigbosst2 sending PEX to peers: Set((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331))
+akka://herochat/user/bigbosst2 peer shook OWOR: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845], Set(), Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 send connection to /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2 Peer starting in Initiate Mode, connecting to /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2 Received Connection response: /0:0:0:0:0:0:0:1:41330, /0:0:0:0:0:0:0:1:62105
+akka://herochat/user/bigbosst2/hc-connection-handler received connection from: /0:0:0:0:0:0:0:1:62104, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 checking incoming peer: /0:0:0:0:0:0:0:1:62104, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 Creating Peer actor: /0:0:0:0:0:0:0:1:62104, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 Peer starting in Reciprocate Mode, connected to /0:0:0:0:0:0:0:1:62104
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 Received Handshake auth message: Vector(Right(AuthTypeUUID(0)), Right(AuthTypeNickname(Garret)), Right(AuthTypePort(41330))), sending response
+akka://herochat/user/bigbosst2 Received shook notice from: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669]: /0:0:0:0:0:0:0:1:62104, User(0,Garret), 41330
+akka://herochat/user/bigbosst2 Completing Handshake for: /0:0:0:0:0:0:0:1:62104, User(0,Garret), Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669], /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 Handshake complete, entering dynamic state
+akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2 Received Handshake auth message: Vector(Right(AuthTypeUUID(0)), Right(AuthTypeNickname(Garret)), Right(AuthTypePort(41330))), handshake complete
+akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2 handshake-receive: Received HcMessage of unknown type: 31, dynHandlers: TreeSet(<function1>, <function1>, <function1>, <function1>)
+akka://herochat/user/bigbosst2 sending PEX to peers: Set((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2 peer shook OWOR: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669], Set((/0:0:0:0:0:0:0:1:41330,Actor[akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2#-1220720397],true,2019-01-12T04:41:07.712Z)), Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330))
+akka://herochat/user/bigbosst2 Received shook notice from: Actor[akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2#-1220720397]: /0:0:0:0:0:0:0:1:41330, User(0,Garret), 41330
+akka://herochat/user/bigbosst2 peer conflict: /0:0:0:0:0:0:0:1:41330, /0:0:0:0:0:0:0:1:41330, Set((/0:0:0:0:0:0:0:1:41330,Actor[akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2#-1220720397],true,2019-01-12T04:41:07.712Z)), Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330))
+akka://herochat/user/bigbosst2 pconf 4: (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330), (/0:0:0:0:0:0:0:1:41330,Actor[akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2#-1220720397],true,2019-01-12T04:41:07.712Z)
+akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2 unshook, disconnecting from /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 peer shook OWOR: Actor[akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2#-1220720397], Set(), Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2/hc-player-0:0:0:0:0:0:0:1:41330 Stopping Actor[akka://herochat/user/bigbosst2/hc-peer-out-0:0:0:0:0:0:0:1:41330-2/hc-player-0:0:0:0:0:0:0:1:41330#1875395731], resetting thread context class loader
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 Received HcText message: They call him BRUCE U
+akka://herochat/user/bigbosst2 Sending msgs to: Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330))
+akka://herochat/user/bigbosst2/hc-connection-handler received connection from: /0:0:0:0:0:0:0:1:62106, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 checking incoming peer: /0:0:0:0:0:0:0:1:62106, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 Creating Peer actor: /0:0:0:0:0:0:0:1:62106, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 Peer starting in Reciprocate Mode, connected to /0:0:0:0:0:0:0:1:62106
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 Received Handshake auth message: Vector(Right(AuthTypeUUID(3)), Right(AuthTypeNickname(Memetic Champion)), Right(AuthTypePort(41333))), sending response
+akka://herochat/user/bigbosst2 Received shook notice from: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4#-1779700109]: /0:0:0:0:0:0:0:1:62106, User(3,Memetic Champion), 41333
+akka://herochat/user/bigbosst2 Completing Handshake for: /0:0:0:0:0:0:0:1:62106, User(3,Memetic Champion), Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4#-1779700109], /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 Handshake complete, entering dynamic state
+akka://herochat/user/bigbosst2 sending PEX to peers: Set((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2 peer shook OWOR: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4#-1779700109], Set(), Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330), (/0:0:0:0:0:0:0:1:62106,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4#-1779700109],false,2019-01-12T04:41:09.704Z,User(3,Memetic Champion),/0:0:0:0:0:0:0:1:41333))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41332))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41333 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41330 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41333 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41330 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332))
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41330 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41333 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41330 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 Received HcText message: LUL
+akka://herochat/user/bigbosst2 Sending msgs to: Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330), (/0:0:0:0:0:0:0:1:62106,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4#-1779700109],false,2019-01-12T04:41:09.704Z,User(3,Memetic Champion),/0:0:0:0:0:0:0:1:41333))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 Received HcText message: Supa shark
+akka://herochat/user/bigbosst2/hc-connection-handler received connection from: /0:0:0:0:0:0:0:1:62112, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 checking incoming peer: /0:0:0:0:0:0:0:1:62112, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 Creating Peer actor: /0:0:0:0:0:0:0:1:62112, /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 Peer starting in Reciprocate Mode, connected to /0:0:0:0:0:0:0:1:62112
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 Received Handshake auth message: Vector(Right(AuthTypeUUID(4)), Right(AuthTypeNickname(Moomoo Missus)), Right(AuthTypePort(41334))), sending response
+akka://herochat/user/bigbosst2 Received shook notice from: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5#862542613]: /0:0:0:0:0:0:0:1:62112, User(4,Moomoo Missus), 41334
+akka://herochat/user/bigbosst2 Completing Handshake for: /0:0:0:0:0:0:0:1:62112, User(4,Moomoo Missus), Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5#862542613], /0:0:0:0:0:0:0:1:41334
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 Handshake complete, entering dynamic state
+akka://herochat/user/bigbosst2 sending PEX to peers: Set((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41334), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2 peer shook OWOR: Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5#862542613], Set(), Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330), (/0:0:0:0:0:0:0:1:62106,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4#-1779700109],false,2019-01-12T04:41:09.704Z,User(3,Memetic Champion),/0:0:0:0:0:0:0:1:41333), (/0:0:0:0:0:0:0:1:62112,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5#862542613],false,2019-01-12T04:41:10.708Z,User(4,Moomoo Missus),/0:0:0:0:0:0:0:1:41334))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41332))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41334), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41334
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41334 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41333 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41330 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41334), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41333 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41334
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41334 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41330 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41334))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41333 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41334
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41334 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 received pex: Vector((ByteVector(16 bytes, 0x00000000000000000000000000000001),41331), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41333), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41332), (ByteVector(16 bytes, 0x00000000000000000000000000000001),41330))
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41331
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41331 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41333
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41333 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41332
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41332 is an invalid connection address
+akka://herochat/user/bigbosst2 BigBoss.Connect checking for valid address: /0:0:0:0:0:0:0:1:41330
+akka://herochat/user/bigbosst2 /0:0:0:0:0:0:0:1:41330 is an invalid connection address
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 Received HcText message: Hehe
+akka://herochat/user/bigbosst2 Sending msgs to: Set((/0:0:0:0:0:0:0:1:62103,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1#-119691845],false,2019-01-12T04:41:07.707Z,User(1,Mememan),/0:0:0:0:0:0:0:1:41331), (/0:0:0:0:0:0:0:1:62104,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3#-137414669],false,2019-01-12T04:41:07.716Z,User(0,Garret),/0:0:0:0:0:0:0:1:41330), (/0:0:0:0:0:0:0:1:62106,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4#-1779700109],false,2019-01-12T04:41:09.704Z,User(3,Memetic Champion),/0:0:0:0:0:0:0:1:41333), (/0:0:0:0:0:0:0:1:62112,Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5#862542613],false,2019-01-12T04:41:10.708Z,User(4,Moomoo Missus),/0:0:0:0:0:0:0:1:41334))
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 Received HcText message: I prefer men
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 Received HcText message: WOW
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1 dynamic, got unhandled message: HandshakeTimeout
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3 dynamic, got unhandled message: HandshakeTimeout
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4 dynamic, got unhandled message: HandshakeTimeout
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5 dynamic, got unhandled message: HandshakeTimeout
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4/hc-player-0:0:0:0:0:0:0:1:62106 Stopping Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62106-4/hc-player-0:0:0:0:0:0:0:1:62106#-1282801940], resetting thread context class loader
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3/hc-player-0:0:0:0:0:0:0:1:62104 Stopping Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62104-3/hc-player-0:0:0:0:0:0:0:1:62104#-1397800299], resetting thread context class loader
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1/hc-player-0:0:0:0:0:0:0:1:62103 Stopping Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62103-1/hc-player-0:0:0:0:0:0:0:1:62103#336145094], resetting thread context class loader
+akka://herochat/user/bigbosst2/hc-player Stopping Actor[akka://herochat/user/bigbosst2/hc-player#1332704677], resetting thread context class loader
+akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5/hc-player-0:0:0:0:0:0:0:1:62112 Stopping Actor[akka://herochat/user/bigbosst2/hc-peer-in-0:0:0:0:0:0:0:1:62112-5/hc-player-0:0:0:0:0:0:0:1:62112#-1839482230], resetting thread context class loader
+akka://herochat/user/bigbosst2 Stopping Actor[akka://herochat/user/bigbosst2#2134763025]

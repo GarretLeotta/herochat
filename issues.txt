@@ -1,0 +1,12 @@
+audio all choppy - if you print to console a lot
+  need to implement a latency, or fps counter
+
+when you mute, it plays the last frames in buffer over and over
+  didnt happen on second try, after removing prints, maybe it is a race condition
+  yeah, it happens every 4th mute or so
+
+  I actually think it happens every time, but sometimes the buffer is mostly empty
+  1. I think I need to frame audio data when we are sending it, so like:
+  START_TALK . TALK . TALK . TALK . TALK . TALK . TALK . TALK . TALK . END_TALK
+  2. or implement a check if the buffer is empty or struggling and top it up with zeros
+  2 will take a bit of experimenting, but seems easier

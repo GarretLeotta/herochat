@@ -1,0 +1,25 @@
+what about a Forward(ActorRef, Message) class, that tells the next actor to forward the message to the next guy
+  drawback 1: need to add forwarding logic to every fucking actor class
+  drawback 2: (benefit actually) Forward(A1, Forward(A2, Forward(A3, Forward(A4, Forward(A5, "Fuck You")))))
+This is a good idea, just use speicific forward messages, ie ToBigBoss, ToView
+
+
+Enhance file reading/writing features
+  support peer joining mid-playback
+  support opening multiple files in order
+  support opening multiple files at once
+
+
+Should BigBoss hold a record of messages received - probably
+Need to think more about how this works, replay and all that
+
+Where do I store icons and stuff?
+
+Completion:
+  Stable lobby of 10 people
+    If one person joins, they are connected via PEX to other members quickly
+    Auto-reconnect - rate limited, timeouts
+    Lobby-members cede their connect ability, A lobby member can't unilaterally connect to someone
+    out-of-lobby, they can invite them, and the invitee can accept
+      Generally, add a UI hook where users decide to accept connections (PEX excluded?)
+  Friends List

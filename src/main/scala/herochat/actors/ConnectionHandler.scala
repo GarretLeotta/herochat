@@ -31,7 +31,9 @@ object ConnectionHandler {
 class ConnectionHandler(port: Int) extends Actor with ActorLogging {
   import context._
   import Tcp._
-  /* TODO: ipv4? */
+  /* TODO: ipv4? - For now, no ipv4 support, much easier to just deal with ipv6.
+   * No NAT punching required.
+   */
   IO(Tcp) ! Tcp.Bind(self, new InetSocketAddress("::1", port))
 
   def receive: Receive = {

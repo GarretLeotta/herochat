@@ -36,12 +36,15 @@ class Decoder(sampleRate: SampleFrequency, nChannels: Int) extends Actor with Ac
       subscribers -= sub
     case AudioData(AudioEncoding.Opus, endOfSegment, bytes) =>
       if (endOfSegment) log.debug(s"got endOfSegment")
-      
+
       dec(bytes.toArray) match {
         case Success(dec_frame) =>
-          subscribers.foreach(sub =>
-            sub ! AudioData(AudioEncoding.Pcm, endOfSegment, codecs.vector(codecs.short16L).encode(dec_frame.toVector).require.bytes)
-          )
+          codecs.vector(codecs.short16L).encode(dec_frame.toVector) match {
+            case Attempt.Successful(opusAudio) =>
+              val msg = AudioData(AudioEncoding.Pcm, endOfSegment, opusAudio.bytes)
+              subscribers.foreach(_ ! msg)
+            case x => log.debug(s"Failed to encode Audio to HcMessage: $x")
+          }
         case Failure(f) => log.debug("Decoder-active: decoder error:", f)
       }
     case _ @ msg => log.debug(s"$self-active: Bad Msg: $msg")

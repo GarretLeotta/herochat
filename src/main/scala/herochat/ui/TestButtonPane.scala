@@ -42,8 +42,10 @@ class TestButtonPane(localUser: User)(implicit val viewActor: ActorRef) {
     }
   }
 
+
   val content = new ButtonBar {
     buttons = ObservableBuffer[Button](
+      msgButton("Settings", HcView.ShowOptions),
       ConnButton,
       msgButton("Disconnect", HcView.DisconnectFromLobby),
       msgButton("Mute", ToModel(BigBoss.SetMuteUser(localUser, true))),

@@ -1,5 +1,7 @@
 package herochat
 
+import scala.language.postfixOps
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration._
@@ -9,11 +11,14 @@ import akka.actor.{ActorRef, Props, Actor, PoisonPill, ActorLogging}
 
 import scalafx.Includes._
 import scalafx.application.Platform
+import scalafx.collections.{ObservableBuffer}
 import scalafx.embed.swing.SFXPanel
 import scalafx.event.EventHandler
 import scalafx.scene.input.{KeyEvent, KeyCode}
 
 import java.net.{InetAddress, InetSocketAddress}
+
+import javax.sound.sampled.{Mixer}
 
 import herochat.actors.{BigBoss}
 import herochat.SnakeController.ToModel
@@ -25,6 +30,9 @@ object HcView {
 
   case object GuiInitialized
 
+  case object ShowDefault extends HcViewMessage
+  case object ShowOptions extends HcViewMessage
+
   case class ConnectString(input: String) extends HcViewMessage
   case object DisconnectFromLobby extends HcViewMessage
 
@@ -34,6 +42,9 @@ object HcView {
   case class AddPeer(peerState: Peer) extends HcViewMessage
   case class UpdatePeerState(newState: Peer) extends HcViewMessage
   case class RemovePeer(user: User) extends HcViewMessage
+
+  case class InputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
+  case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
 }
 
 /**
@@ -85,6 +96,11 @@ class HcView(localUser: User) extends Actor with ActorLogging {
 
   def init_receive: Receive = {
     //Events from UI
+    case HcView.ShowDefault =>
+      guiInstance.showDefault()
+    case HcView.ShowOptions =>
+      guiInstance.showOptions()
+      parent ! ToModel(BigBoss.GetSupportedMixers)
     case HcView.ConnectString(input: String) =>
       input match {
         //validation in View Actor
@@ -99,19 +115,17 @@ class HcView(localUser: User) extends Actor with ActorLogging {
           log.debug(s"match_ip6: $addr.")
           /* TODO: no port */
         case url_pattern.r(encodedIp) =>
-          log.debug(s"match_url: $encodedIp.")
+          log.debug(s"match_url: $encodedIp, ${Tracker.decode_ip_from_url(encodedIp)}")
           Tracker.decode_ip_from_url(encodedIp).foreach(parent ! BigBoss.Connect(_))
         case _ => log.debug("Got some bullshit")
       }
     case HcView.DisconnectFromLobby =>
-      log.debug(s"unimplemented: disconn button: $sender")
+      parent ! BigBoss.DisconnectAll
     case HcView.SendMessage(msg) =>
       //TODO: send modes other than shout
       parent ! BigBoss.Shout(msg)
 
     //Events from Controller
-    /* TODO: BUG: View received this message before the gui thread managed to
-     * initialize userMap */
     case PeerState.NewPeer(peerState) => Platform.runLater {
       guiInstance.userMap += ((peerState.user, peerState))
       //println(s"view added peer $peerState, ${guiInstance.userMap}")
@@ -124,6 +138,19 @@ class HcView(localUser: User) extends Actor with ActorLogging {
       guiInstance.userMap -= peerState.user
       //println(s"view removed peer $peerState, ${guiInstance.userMap}")
     }
+
+    case HcView.InputMixers(currentMixer, mixers) =>
+      log.debug(s"got input ${mixers.mkString(" :: ")}")
+      guiInstance.updateOptionsInputMixers(currentMixer, mixers)
+      //guiInstance.inMixers.clear()
+      //guiInstance.inMixers ++= mixers
+      //guiInstance.selectedInMixer = currentMixer
+    case HcView.OutputMixers(currentMixer, mixers) =>
+      log.debug(s"got output ${mixers.mkString(" :: ")}")
+      guiInstance.updateOptionsOutputMixers(currentMixer, mixers)
+      //guiInstance.outMixers.clear()
+      //guiInstance.outMixers ++= mixers
+      //guiInstance.selectedOutMixer = currentMixer
 
     case ToModel(msg) => parent ! ToModel(msg)
 

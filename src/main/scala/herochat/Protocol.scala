@@ -7,13 +7,12 @@ import scodec.codecs._
 
 
 /*
- * TODO: implement terminator in audio message. last message in sequence should flip a bit somewhere
- * in header to let them know we are done talking
  */
 object HcCodec {
   //Basic Protocol description
   case class HcMessage(msgType: Int, msgLength: Int, data: ByteVector)
 
+  /* TODO: type and length are Big endian right now, should they be little endian? */
   implicit val hcMessage: Codec[HcMessage] = {
     ("type"     | uint16) ::
     (("length"  | uint16) >>:~ { length =>
@@ -61,16 +60,20 @@ object HcCodec {
   val MsgTypeText = 8
 
   val MsgTypeAudio = 9
+
+  /* Constant Messages */
+  val HcDisconnect = Codec.encode(HcMessage(MsgTypeShakeDisconnect, 0, hex"")).require
 }
 
+/* Different kinds of audio encodings, how to handle them?? */
 object AudioEncoding {
   sealed trait AudioEncoding
   case object Pcm extends AudioEncoding
   case object Opus extends AudioEncoding
 
   implicit val codec: Codec[AudioEncoding] = mappedEnum(uint(7),
-    Pcm -> 1,
-    Opus -> 2,
+    Opus -> 1,
+    Pcm -> 2,
   )
 }
 

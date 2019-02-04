@@ -6,7 +6,7 @@ import akka.actor.{ActorRef, Props, Actor, ActorLogging}
 
 import scodec.bits.ByteVector
 
-import javax.sound.sampled.{DataLine, SourceDataLine, AudioSystem, AudioFormat}
+import javax.sound.sampled.{DataLine, SourceDataLine, AudioSystem, AudioFormat, Mixer}
 import javax.sound.sampled.{Control, BooleanControl, EnumControl, FloatControl}
 
 import herochat.{AudioEncoding, AudioData, AudioUtils}
@@ -44,11 +44,11 @@ class PlayQueue(sourceLine: SourceDataLine) extends Actor with ActorLogging {
 
 
 object AudioPlayer {
-  def props(format: AudioFormat, audioBufSize: Int): Props = Props(classOf[AudioPlayer], format, audioBufSize)
+  def props(format: AudioFormat, audioBufSize: Int, mixerInfo: Mixer.Info): Props = Props(classOf[AudioPlayer], format, audioBufSize, mixerInfo)
 }
 
 /*  */
-class AudioPlayer(format: AudioFormat, audioBufSize: Int) extends Actor with ActorLogging {
+class AudioPlayer(format: AudioFormat, audioBufSize: Int, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
   import context._
   import AudioPlayer._
   import herochat.AudioControl._
@@ -64,10 +64,9 @@ class AudioPlayer(format: AudioFormat, audioBufSize: Int) extends Actor with Act
   }
 
   //Initialize javax sound system
-  val outName = "Speakers (Realtek High Definition Audio)"
+
   val sourceInfo = new DataLine.Info(classOf[SourceDataLine], format, audioBufSize)
-  val outMixerInfo = herochat.AudioUtils.getMixerInfo(outName)
-  val inmix = AudioSystem.getMixer(outMixerInfo)
+  val inmix = AudioSystem.getMixer(mixerInfo)
   val sourceLine = inmix.getLine(sourceInfo).asInstanceOf[SourceDataLine]
   val playQueue = context.actorOf(PlayQueue.props(sourceLine), "playQueue")
 

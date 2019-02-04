@@ -99,7 +99,7 @@ class LobbyPane(var pmap: ObservableMap[User, Peer], localUser: User)(implicit v
 
   /* this is a pretty strong case for SetMute(boolean), rather than Mute / UnMute */
   /* TODO: utility to set starting state of checkbox */
-  def checkBoxMenuItem(label: String, msg_func: Boolean => Any): MenuItem = {
+  def checkBoxMenuItem(label: String, msgFunc: Boolean => Any): MenuItem = {
     /* TODO: checkboxes need to watch peerState.muted, etc */
     new CustomMenuItem {
       hideOnClick = false
@@ -109,7 +109,7 @@ class LobbyPane(var pmap: ObservableMap[User, Peer], localUser: User)(implicit v
           new Text(label),
           new CheckBox {
             onAction = (event: ActionEvent) => {
-              viewActor ! msg_func(this.selected.value)
+              viewActor ! msgFunc(this.selected.value)
             }
           },
         )

@@ -42,8 +42,12 @@ object MVCAkkaTest extends App {
   def testChat(args: Array[String]): CommandVector = {
     Vector(
       (2.0 seconds, bigBossT1, BigBoss.Connect(new InetSocketAddress("::1", 41330))),
+      //(3.0 seconds, bigBossT1, BigBoss.SetMuteUser(User(0, "Garret"), true)),
+      //(3.0 seconds, bigBossT1, BigBoss.DebugPCMFromFile("test_data/output_test.pcm")),
+      (3.0 seconds, bigBossT1, BigBoss.PlayAudioFile("test_data/output_test.wav", "wav")),
 
-      (3.0 seconds, bigBossT1, BigBoss.DebugPCMFromFile("test_data/output_test.pcm")),
+      //(5.0 seconds, controller, BigBoss.DisconnectAll),
+      //(6.0 seconds, bigBossT1, BigBoss.Connect(new InetSocketAddress("::1", 41330))),
 
       //(3.0 seconds, bigBossT1, BigBoss.DebugReadFile("test_data/output_test.pcm")),
 

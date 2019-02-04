@@ -23,3 +23,8 @@ Completion:
     out-of-lobby, they can invite them, and the invitee can accept
       Generally, add a UI hook where users decide to accept connections (PEX excluded?)
   Friends List
+
+
+Right now, hard to test that audio is still sent after reconnect.
+When we read an audio file, we read it all really quickly and send.
+Need to make a rate-limited file reader for testing

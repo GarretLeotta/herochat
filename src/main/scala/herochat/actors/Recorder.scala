@@ -6,14 +6,14 @@ import akka.actor.{ActorRef, Props, Actor, ActorLogging}
 
 import java.nio.file.Paths
 import java.io.FileOutputStream
-import javax.sound.sampled.{DataLine, TargetDataLine, AudioSystem, AudioFormat}
+import javax.sound.sampled.{DataLine, TargetDataLine, AudioSystem, AudioFormat, Mixer}
 
 import scodec.bits.ByteVector
 
 import herochat.{AudioEncoding, AudioData}
 
 object Recorder {
-  def props(format: AudioFormat, bufSize: Int, deviceName: String): Props = Props(classOf[Recorder], format, bufSize, deviceName)
+  def props(format: AudioFormat, bufSize: Int, mixerInfo: Mixer.Info): Props = Props(classOf[Recorder], format, bufSize, mixerInfo)
 
   case object Record
   case object Pause
@@ -25,7 +25,7 @@ object Recorder {
  * input args: audio encoding, sample rate, sampleSizeInBits, channels, frame size, frame rate, big endian,
  * bufferSize, audio device name, output_actor
  */
-class Recorder(format: AudioFormat, bufSize: Int, deviceName: String) extends Actor with ActorLogging {
+class Recorder(format: AudioFormat, bufSize: Int, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
   import context._
 
   //sbt compatibility
@@ -42,7 +42,7 @@ class Recorder(format: AudioFormat, bufSize: Int, deviceName: String) extends Ac
 
   //set up javax Sound Stuff
   val targetInfo = new DataLine.Info(classOf[TargetDataLine], format, bufSize)
-  val inMixer = AudioSystem.getMixer(herochat.AudioUtils.getMixerInfo(deviceName))
+  val inMixer = AudioSystem.getMixer(mixerInfo)
   val targetLine = inMixer.getLine(targetInfo).asInstanceOf[TargetDataLine]
   //Open and start the target line
   log.debug(s"starting javax line")

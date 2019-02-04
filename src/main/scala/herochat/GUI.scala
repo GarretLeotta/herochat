@@ -8,10 +8,13 @@ import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.{ObservableBuffer, ObservableMap}
+import scalafx.beans.property.ObjectProperty
 import scalafx.scene.{Scene}
 import scalafx.scene.layout.{BorderPane}
 
-import herochat.ui.{TitlePane, LobbyPane, ChatPane, ServerPane, TestButtonPane}
+import javax.sound.sampled.{Mixer}
+
+import herochat.ui._
 
 
 case class ChatMessage(sender: User, msg: String) {
@@ -34,35 +37,54 @@ class HcGUI(localUser: User)(implicit val viewActor: ActorRef) extends JFXApp {
   var serverList = ObservableBuffer[User]()
 
   /*
-  userMap.onChange { (buf, change) => change match {
-    case ObservableMap.Add(key, added) =>
-      println(s"test: added: $key, $added")
-    case ObservableMap.Remove(key, removed) =>
-      println(s"test: removed: $key, $removed")
-    case ObservableMap.Replace(key, added, removed) =>
-      println(s"test: replaced: $key, $added, $removed")
-    case x => println(s"test: unknown change sub: $x")
-  }}
+  var inMixers = ObservableBuffer[Mixer.Info]()
+  var selectedInMixer = ObjectProperty[Mixer.Info](this, "selectedInputMixer")
+  var outMixers = ObservableBuffer[Mixer.Info]()
+  var selectedOutMixer = ObjectProperty[Mixer.Info](this, "selectedInputMixer")
   */
 
-  //println(s"class: $getClass")
-
   var messages = ObservableBuffer[ChatMessage]()
+
+  val defaultScene = new BorderPane {
+    top = new TitlePane().content
+    left = new LobbyPane(userMap, localUser).content
+    center = new ChatPane(messages).content
+    right = new ServerPane(serverList).content
+    bottom = new TestButtonPane(localUser).content
+  }
+
+  val optionsScene = new OptionsPane(localUser)
+
+  val primaryScene = new Scene {
+    stylesheets += getClass.getResource("styles.css").toExternalForm
+    root = defaultScene
+  }
 
   stage = new PrimaryStage {
     title = "Herochat (Test)"
     width = 1100
     height = 700
-    scene = new Scene {
-      stylesheets += getClass.getResource("styles.css").toExternalForm
-      root = new BorderPane {
-        top = new TitlePane().content
-        left = new LobbyPane(userMap, localUser).content
-        center = new ChatPane(messages).content
-        right = new ServerPane(serverList).content
-        bottom = new TestButtonPane(localUser).content
-      }
-    }
+    scene = primaryScene
+  }
+
+  def showOptions(): Unit = {
+    primaryScene.root = optionsScene
+  }
+
+  def showDefault(): Unit = {
+    primaryScene.root = defaultScene
+  }
+
+
+  def updateOptionsInputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info]): Unit = {
+    optionsScene.audioTab.inMixers.clear()
+    optionsScene.audioTab.inMixers ++= mixers
+    optionsScene.audioTab.selectedInMixer.update(currentMixer)
+  }
+  def updateOptionsOutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info]): Unit = {
+    optionsScene.audioTab.outMixers.clear()
+    optionsScene.audioTab.outMixers ++= mixers
+    optionsScene.audioTab.selectedOutMixer.update(currentMixer)
   }
 
   viewActor ! HcView.GuiInitialized

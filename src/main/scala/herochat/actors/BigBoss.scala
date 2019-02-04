@@ -29,9 +29,10 @@ import scodec.codecs._
 import za.co.monadic.scopus.{Sf48000}
 
 import herochat.HcCodec._
-import herochat.{ChatMessage, User, HcView, Tracker, PeerTable, Peer, PeerState, AudioControl}
+import herochat.{ChatMessage, User, HcView, Tracker, PeerTable, Peer, PeerState, AudioControl, WavCodec, AudioUtils}
 import herochat.SnakeController.ToView
 
+import javax.sound.sampled.{DataLine, TargetDataLine, SourceDataLine, AudioSystem, Mixer}
 
 object BigBoss {
   def props(port: Int, localUser: User, record: Boolean): Props = Props(classOf[BigBoss], port, localUser, record)
@@ -45,12 +46,16 @@ object BigBoss {
   //connection commands
   case class Connect(remoteAddress: InetSocketAddress) extends BigBossMessage
   case class Disconnect(remoteAddress: InetSocketAddress) extends BigBossMessage
+  case object DisconnectAll extends BigBossMessage
+
+  //Peer creation messages
+  case class IncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, socketRef: ActorRef) extends BigBossMessage
+  case class PeerShook(remoteAddress: InetSocketAddress, remoteUser: User, peerRef: ActorRef, remoteListeningPort: Int) extends BigBossMessage
+
   //chat commands
   case class Shout(msg: String) extends BigBossMessage
 
-  case class ReadFile(filename: String) extends BigBossMessage
-  case class OpenFile(filename: String) extends BigBossMessage
-  case object CloseFile extends BigBossMessage
+  /* TODO: don't need these */
   case object StartRecord extends BigBossMessage
   case object StopRecord extends BigBossMessage
 
@@ -64,30 +69,23 @@ object BigBoss {
   case class SetBlockUser(user: User, setBlock: Boolean) extends BigBossMessage
   case class SetServerMuteUser(user: User, setMute: Boolean) extends BigBossMessage
   case class SetServerDeafenUser(user: User, setDeafen: Boolean) extends BigBossMessage
-
   case class SetVolumeUser(user: User, vol: Double) extends BigBossMessage
 
-  //Peer creation messages
-  case class IncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, socketRef: ActorRef) extends BigBossMessage
-  case class PeerShook(remoteAddress: InetSocketAddress, remoteUser: User, peerRef: ActorRef, remoteListeningPort: Int) extends BigBossMessage
+  case object CloseFile extends BigBossMessage
+  case class ReadFile(filename: String) extends BigBossMessage
+  case class OpenFile(filename: String) extends BigBossMessage
 
+  /* Send audio from file to peers */
+  case class PlayAudioFile(filename: String, filetype: String)
+  /* Record from microphone */
+  case class RecordAudioFile(filename: String, filetype: String)
+
+  case object GetSupportedMixers
+  case class SetInputMixer(mixer: Mixer.Info)
+  case class SetOutputMixer(mixer: Mixer.Info)
   //Log Decoded audio
-  case class StartLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
-  case class StopLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
-
-  //Debug commands
-  case class DebugReadFile(filename: String) extends BigBossMessage
-  case class DebugPlayFromFile(filename: String) extends BigBossMessage
-  case class DebugRecordToFile(filename: String) extends BigBossMessage
-  case class DebugPCMFromFile(filename: String) extends BigBossMessage
-  case class DebugOpusFromFile(filename: String) extends BigBossMessage
-  case class DebugPCMToFile(filename: String) extends BigBossMessage
-  case class DebugOpusToFile(filename: String) extends BigBossMessage
-  case object DebugMuteAllPeers extends BigBossMessage
-  case object DebugPlayAllPeers extends BigBossMessage
-  case class DebugLogAllAudio(filePrefix: String) extends BigBossMessage
-  case class DebugLogAudioFrom(remoteUser: User, filename: String) extends BigBossMessage
-  case class DebugStopLogAudioFrom(remoteUser: User, filename: String) extends BigBossMessage
+  //case class StartLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
+  //case class StopLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
 }
 
 /**
@@ -102,6 +100,8 @@ object BigBoss {
  * TODO: state transition stuff for peers:
  * when we switch into play mode, all peers need to update, all future peers need to start in correct state
  * vice versa
+ *
+ * TODO: audio probably playing too fast/slow not sure which, decoding from opus at 48k, playing at 44.1k
  */
 class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor with ActorLogging {
   import context._
@@ -115,33 +115,65 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   val encoding = AudioFormat.Encoding.PCM_SIGNED
   val sampleRate = 44100
   val sampleSize = 16
+  val sampleSizeBytes = sampleSize / 8
   val channels = 1
-  val frameSize = sampleSize * channels / 8
-  val frameRate = sampleRate
-  val bigEndian = false
-  /* bufSize[InSeconds] = (bufSize / frameSize) / sampleRate */
+  /* bufSize[InSeconds] = (bufSize / (channels * sampleSizeBytes)) / sampleRate */
   val bufSize = 24000
-  val inDeviceName = "Microphone (INSIGNIA USB MIC De"
+  //val inDeviceName = "Microphone (INSIGNIA USB MIC De"
+  //val outDeviceName = "Speakers (Realtek High Definition Audio)"
 
-  val format = new AudioFormat(encoding, sampleRate, sampleSize, channels, frameSize, frameRate, bigEndian)
+  val pcmFmt = WavCodec.PcmFormat(
+    encoding,
+    channels,
+    sampleRate,
+    sampleRate * channels * sampleSizeBytes,
+    channels * sampleSizeBytes,
+    sampleSize
+  )
+  val format = pcmFmt.toJavax
+
+  //sbt compatibility - Need to change class loader for javax to work
+  val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
+  val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
+  Thread.currentThread.setContextClassLoader(cl)
+  override def postStop {
+    log.debug(s"Stopping, resetting thread context class loader")
+    Thread.currentThread.setContextClassLoader(old_cl)
+  }
+
+
+  val sourceInfo = new DataLine.Info(classOf[SourceDataLine], format, bufSize)
+  val targetInfo = new DataLine.Info(classOf[TargetDataLine], format, bufSize)
+
+  var sourceMixes = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
+  var targetMixes = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
+
+  var sourceMixer = sourceMixes(0)
+  var targetMixer = targetMixes(0)
+
+  println(s"$self: supp mixer: ${AudioSystem.getMixerInfo.mkString(" :: ")}")
+  println(s"$self: source: ${AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo).mkString(" :: ")}")
+  println(s"$self: target: ${AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo).mkString(" :: ")}")
+
+
 
   //IP address we listen for new connections on
   /* TODO: LATER: support modifying what port we listen on during runtime */
   val listenAddress = new InetSocketAddress("::1", listenPort)
   val connHandler = context.actorOf(ConnectionHandler.props(listenPort), "hc-connection-handler")
 
-  /* TODO: support multiple file reads/writes */
+  /* TODO: support multiple simultaneous file reads/writes */
   val filereader = context.actorOf(FileReader.props(), "hc-filereader")
   val filewriter = context.actorOf(FileWriter.props(), "hc-filewriter")
 
   //For debug purposes, if we want to play sound directly from a file
-  val player = context.actorOf(AudioPlayer.props(format, bufSize), "hc-player")
+  val player = context.actorOf(AudioPlayer.props(format, bufSize, sourceMixer), "hc-player")
   val decoder = context.actorOf(Decoder.props(Sf48000, 1), "hc-decoder")
 
   var recorder: Option[ActorRef] = None
   val encoder = context.actorOf(Encoder.props(20, Sf48000, 1), "hc-encoder")
   if (record) {
-    recorder = Some(context.actorOf(Recorder.props(format, bufSize, inDeviceName), "hc-recorder"))
+    recorder = Some(context.actorOf(Recorder.props(format, bufSize, targetMixer), "hc-recorder"))
     recorder.foreach(_ ! AddSubscriber(encoder))
     /* This is conditional */
     recorder.foreach(_ ! AddSubscriber(filewriter))
@@ -179,13 +211,16 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   /* Only send Pex messages to the newly connected peer
    */
   def sendPexMessage(newPeer: ActorRef): Unit = {
-    /* TODO: filter PEX, improve the procedure, improve codec for InetSocketAddress so I don't need this mess */
     val pexAddresses = peerTable.shookPeers.map(x => (ByteVector(x._6.getAddress.getAddress), x._6.getPort))
     log.debug(s"sending PEX to peers: ${pexAddresses}")
-    val ipList = pex6PayloadCodec.encode(pexAddresses.toVector).require.bytes
-    val pexMsg = HcMessage(MsgTypePex6, ipList.length.toInt, ipList)
-    //peerTable.shookPeers.foreach(peer => peer._2 ! pexMsg)
-    newPeer ! pexMsg
+    pex6PayloadCodec.encode(pexAddresses.toVector) match {
+      case Attempt.Successful(ipList) =>
+        val ipListInBytes = ipList.bytes
+        val pexMsg = HcMessage(MsgTypePex6, ipListInBytes.length.toInt, ipListInBytes)
+        newPeer ! pexMsg
+      case x => log.debug(s"Pex Encoding Failure: $x")
+    }
+
   }
   def completeHandshake(remoteAddr: InetSocketAddress, peerRef: ActorRef, remoteUser: User, pexAddr: InetSocketAddress): Unit = {
     log.debug(s"Completing Handshake for: $remoteAddr, $remoteUser, $peerRef, $pexAddr")
@@ -214,7 +249,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
       //check that this peer isn't ourselves, and that we aren't already connected to it
       if (!peerTable.preShakeVerify(remoteAddress, listenAddress)) {
         log.debug(s"Duplicate/Self-connected peer incoming: $remoteAddress, $localAddress")
-        socketRef ! Write(ByteString(Codec.encode(HcMessage(MsgTypeShakeDisconnect, 0, hex"")).require.toByteArray))
+        socketRef ! Write(ByteString(HcDisconnect.toByteArray))
       } else {
         log.debug(s"Creating Peer actor: $remoteAddress, $localAddress")
         val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, format, bufSize, localUser, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
@@ -229,6 +264,9 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
       if (peerTable.postShakeVerify(remoteAddress, remotePexAddr)) {
         completeHandshake(remoteAddress, peerRef, remoteUser, remotePexAddr)
       } else {
+        /* TODO: evaluate this logic, simultaneous connections don't generally work, is it worth the
+         * complexity to save a few odd scenarios?
+         */
         /* Handle edge case where we connect to remote at same time they connect to us.
          * deterministically close one of the connections, using the user id of the initiator
          * lower user id's have priority
@@ -273,6 +311,10 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
       }
       log.debug(s"peer shook OWOR: $peerRef, ${peerTable.shakingPeers}, ${peerTable.shookPeers}")
 
+    /* TODO: are there race conditions here, we don't disconnect from some very young peers */
+    case BigBoss.DisconnectAll =>
+      peerTable.shakingPeers.foreach( _._2 ! PeerActor.Disconnect )
+      peerTable.shookPeers.foreach( _._2 ! PeerActor.Disconnect )
     case BigBoss.Disconnect(remoteAddress) =>
       log.debug(s"disconnecting from every peer at $remoteAddress, ${peerTable.shakingPeers}, ${peerTable.shookPeers}, ${peerTable.getIsShookByAddr(remoteAddress)}, ${peerTable.getShookByPexAddr(remoteAddress)}")
       peerTable.getIsShookByAddr(remoteAddress).foreach(x => x match {
@@ -303,18 +345,18 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
     //public chat commands
     case BigBoss.Shout(msg) =>
       log.debug(s"Sending msgs to: ${peerTable.shookPeers}")
-      val utf8Encoded = utf8.encode(msg).require.bytes
-      val hcMsg = HcMessage(MsgTypeText, utf8Encoded.length.toInt, utf8Encoded)
-      peerTable.shookPeers.foreach(peer => peer._2 ! hcMsg)
-    //Received a chat message
-    case msg: ChatMessage => parent ! msg
+      utf8.encode(msg) match {
+        case Attempt.Successful(utf8Bits) =>
+          val utf8Bytes = utf8Bits.bytes
+          val hcMsg = HcMessage(MsgTypeText, utf8Bytes.length.toInt, utf8Bytes)
+          peerTable.shookPeers.foreach(peer => peer._2 ! hcMsg)
+        case x =>
+          log.debug(s"Failed encoding Message to utf8: $msg, $x")
+      }
 
-    case BigBoss.ReadFile(filename) =>
-      filereader ! FileReader.Open(filename)
-    case BigBoss.OpenFile(filename) =>
-      filewriter ! FileWriter.Open(filename)
-    case BigBoss.CloseFile =>
-      filewriter ! FileWriter.Close
+    //Received a chat message
+    /* TODO: replace this with meaning */
+    case msg: ChatMessage => parent ! msg
 
     case BigBoss.StartRecord =>
       log.debug(s"starting record: $sender")
@@ -326,7 +368,8 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
     case BigBoss.StartSpeaking if !localPeerState.muted =>
       /* TODO: this is conditional based on logging */
       /* TODO: filename based on name */
-      filewriter ! FileWriter.Open("test_data/output_test.pcm")
+      //filewriter ! FileWriter.Open("test_data/output_test.wav")
+      filewriter ! FileWriter.OpenWav("test_data/output_test.wav", pcmFmt)
 
       self ! BigBoss.StartRecord
       updateState(localPeerState.copy(speaking = true))
@@ -334,9 +377,6 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
       self ! BigBoss.StopRecord
       updateState(localPeerState.copy(speaking = false))
 
-
-    /* TODO: mute should stop transmit if user is currently speaking */
-    /* TODO: unmute */
     case BigBoss.SetMuteUser(user, setMute) =>
       peerTable.getShookByUser(user) match {
         case Some(remotePeerState) =>
@@ -371,52 +411,72 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
     case BigBoss.SetVolumeUser(user, volume) =>
       peerTable.getShookByUser(user).foreach(_._2 ! AudioControl.SetVolume(volume))
 
+    /* Mixer Options */
+    case BigBoss.GetSupportedMixers =>
+      val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
+      val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
+      Thread.currentThread.setContextClassLoader(cl)
 
-    //Debug Messages
-    case BigBoss.DebugReadFile(filename) =>
+      val sourceInfo = new DataLine.Info(classOf[SourceDataLine], format, bufSize)
+      val targetInfo = new DataLine.Info(classOf[TargetDataLine], format, bufSize)
+      val sourceMixers = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
+      val targetMixers = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
+
+      log.debug(s"Sending Source Mixers: ${sourceMixers.mkString(" :: ")}")
+      log.debug(s"Sending Target Mixers: ${targetMixers.mkString(" :: ")}")
+
+      parent ! ToView(HcView.OutputMixers(sourceMixer, sourceMixers))
+      parent ! ToView(HcView.InputMixers(targetMixer, targetMixers))
+
+      Thread.currentThread.setContextClassLoader(old_cl)
+    case BigBoss.SetInputMixer(mixer) =>
+      log.debug(s"new input mixer recved: $mixer")
+      //change targetMixer variable
+      //kill recorder
+      //respawn recorder with new target mixer
+    case BigBoss.SetOutputMixer(mixer) =>
+      log.debug(s"new output mixer recved: $mixer")
+      //change sourceMixer variable
+      //kill peer players
+      //kill player
+      //respawn peer players and boss player with new target mixer
+
+
+    case BigBoss.ReadFile(filename) =>
       filereader ! FileReader.Open(filename)
-    
+    case BigBoss.OpenFile(filename) =>
+      filewriter ! FileWriter.Open(filename)
+    case BigBoss.CloseFile =>
+      filewriter ! FileWriter.Close
+
+    /* Play a file, set speaking until file ends.
+     * User is allowed to record own voice, so speaking can continue after file ends
+     * That's complicated..
+     */
+    case BigBoss.PlayAudioFile(filename, filetype) =>
+      if (filetype == "wav") {
+        filereader ! AddSubscriber(encoder)
+        filereader ! FileReader.OpenWav(filename, pcmFmt)
+      } else {
+        log.debug(s"Unsupported Filetype: $filename, $filetype")
+      }
+
+    case BigBoss.RecordAudioFile(filename, filetype) =>
+      ()
+
+    /*
     case BigBoss.DebugPCMFromFile(filename) =>
       filereader ! AddSubscriber(encoder)
       filereader ! FileReader.Open(filename)
-
-
-
-    case BigBoss.DebugPlayFromFile(filename) =>
-      //read PCM data from a file, play it through javax
-      filereader ! AddSubscriber(player)
-      filereader ! FileReader.Open(filename)
+    case BigBoss.DebugPCMFromWavFile(filename) =>
+      filereader ! AddSubscriber(encoder)
+      filereader ! FileReader.OpenWav(filename, pcmFmt)
     case BigBoss.DebugRecordToFile(filename) =>
       //Record PCM data from javax, write it to a file
       recorder.foreach(_ ! AddSubscriber(filewriter))
       filewriter ! FileWriter.Open(filename)
       self ! BigBoss.StartRecord
-    case BigBoss.DebugOpusFromFile(filename) =>
-      //read Opus data from a file, send it to peers
-      ()
-    case BigBoss.DebugPCMToFile(filename) =>
-      //read Opus data from peers, decode it, write it to a file
-      ()
-    case BigBoss.DebugOpusToFile(filename) =>
-      //read Opus data from peers, write it to a file
-      //file will be a mess, bunch of audio messed up together
-    case BigBoss.DebugLogAllAudio(filePrefix) =>
-      ()
-    case BigBoss.DebugLogAudioFrom(remoteUser, filename) =>
-      peerTable.getShookByUser(remoteUser) match {
-        case Some(peerTuple) => peerTuple._2 ! PeerActor.LogAudioToFile(filename)
-        case None => ()
-      }
-    case BigBoss.DebugStopLogAudioFrom(remoteUser, filename) =>
-      peerTable.getShookByUser(remoteUser) match {
-        case Some(peerTuple) => peerTuple._2 ! PeerActor.CloseLogFile(filename)
-        case None => ()
-      }
+    */
     case _ @ msg => log.debug(s"Bad Msg: $msg")
-  }
-
-  //debug
-  override def postStop {
-    log.debug(s"Stopping $self")
   }
 }

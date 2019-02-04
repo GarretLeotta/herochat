@@ -29,12 +29,9 @@ class ServerPane(var users: ObservableBuffer[User])(implicit val viewActor: Acto
       cellFactory = { p =>
         new ListCell[User] {
           item.onChange { (obsVal, oldVal, newVal) => {
-            //this fucking blows, scalafx should use options
-            if (newVal == null) {
-              text = null
-            } else {
-              println(s"in onChange: $oldVal :: $newVal")
-              text = newVal.toString
+            Option(newVal) match {
+              case Some(user) => text = newVal.toString
+              case None => text = null
             }
           }}
           onMouseClicked = { me: MouseEvent => println(s"Selection Changed: ${text.value}") }

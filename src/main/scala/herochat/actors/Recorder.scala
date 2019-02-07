@@ -13,7 +13,7 @@ import scodec.bits.ByteVector
 import herochat.{AudioEncoding, AudioData}
 
 object Recorder {
-  def props(format: AudioFormat, bufSize: Int, mixerInfo: Mixer.Info): Props = Props(classOf[Recorder], format, bufSize, mixerInfo)
+  def props(lineInfo: DataLine.Info, mixerInfo: Mixer.Info): Props = Props(classOf[Recorder], lineInfo, mixerInfo)
 
   case object Record
   case object Pause
@@ -25,7 +25,7 @@ object Recorder {
  * input args: audio encoding, sample rate, sampleSizeInBits, channels, frame size, frame rate, big endian,
  * bufferSize, audio device name, output_actor
  */
-class Recorder(format: AudioFormat, bufSize: Int, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
+class Recorder(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
   import context._
 
   //sbt compatibility
@@ -40,10 +40,10 @@ class Recorder(format: AudioFormat, bufSize: Int, mixerInfo: Mixer.Info) extends
     Thread.currentThread.setContextClassLoader(old_cl)
   }
 
+  log.debug(s"Recorder starting on Mixer: $mixerInfo")
   //set up javax Sound Stuff
-  val targetInfo = new DataLine.Info(classOf[TargetDataLine], format, bufSize)
   val inMixer = AudioSystem.getMixer(mixerInfo)
-  val targetLine = inMixer.getLine(targetInfo).asInstanceOf[TargetDataLine]
+  val targetLine = inMixer.getLine(lineInfo).asInstanceOf[TargetDataLine]
   //Open and start the target line
   log.debug(s"starting javax line")
   targetLine.open()
@@ -53,7 +53,7 @@ class Recorder(format: AudioFormat, bufSize: Int, mixerInfo: Mixer.Info) extends
   def handle_out(actor: ActorRef) = {}
 
   var subscribers = scala.collection.mutable.Set[ActorRef]()
-  var buf: Array[Byte] = Array.ofDim[Byte](bufSize)
+  var buf: Array[Byte] = Array.ofDim[Byte](lineInfo.getMaxBufferSize)
 
   /**
    * two states: active and inactive
@@ -71,7 +71,7 @@ class Recorder(format: AudioFormat, bufSize: Int, mixerInfo: Mixer.Info) extends
 
   /* This is a blocking call, meaning that any pause commands will have a delay of at most bufSize[Seconds] */
   def recordAndSend(lastSegment: Boolean): Unit = {
-    val bytesRead = targetLine.read(buf, 0, bufSize)
+    val bytesRead = targetLine.read(buf, 0, buf.length)
     subscribers.foreach( sub =>
       sub ! AudioData(AudioEncoding.Pcm, lastSegment, ByteVector(buf.slice(0, bytesRead+1)))
     )

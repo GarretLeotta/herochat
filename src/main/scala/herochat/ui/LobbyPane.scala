@@ -76,7 +76,7 @@ class LobbyPane(var pmap: ObservableMap[User, Peer], localUser: User)(implicit v
         new Text(peerState.toString) {
           onMouseClicked = { me: MouseEvent => me.button match {
             case MouseButton.Secondary =>
-              contextMenu.show(this, me.getScreenX(), me.getScreenY());
+              contextMenu.show(this, me.getScreenX(), me.getScreenY())
             case x => ()
           }}
         },

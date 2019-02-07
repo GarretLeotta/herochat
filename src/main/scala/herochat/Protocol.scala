@@ -49,10 +49,11 @@ object HcCodec {
   val MsgTypePex4 = 30
   val MsgTypePex6 = 31
 
-  val MsgTypeMuteAudio = 410
-  val MsgTypePlayAudio = 411
-  val MsgTypeMutePex = 420
-  val MsgTypePlayPex = 421
+  /* TODO: */
+  val MsgTypeRequestAudio = 410
+  val MsgTypeRefuseAudio = 411
+  val MsgTypeRequestPex = 420
+  val MsgTypeRefusePex = 421
 
 
   val MsgTypeLobbyInfo = 5

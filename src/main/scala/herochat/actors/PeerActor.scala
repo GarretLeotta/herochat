@@ -6,7 +6,7 @@ import scala.concurrent.duration._
 import scala.math.{max}
 import scala.util.{Try,Success,Failure}
 
-import akka.actor.{ActorRef, Props, Actor, PoisonPill, ActorLogging}
+import akka.actor.{ActorRef, Props, Actor, PoisonPill, ActorLogging, Kill}
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 
@@ -15,7 +15,7 @@ import java.io.{FileOutputStream}
 
 import za.co.monadic.scopus.{Sf48000}
 
-import javax.sound.sampled.AudioFormat
+import javax.sound.sampled.{DataLine, Mixer}
 
 import scodec._
 import scodec.bits._
@@ -26,11 +26,13 @@ import herochat.HcCodec._
 
 
 object PeerActor {
-  def props(remoteAddress: InetSocketAddress, socket: ActorRef, initialState: PeerActor.InitialState, audioFormat: AudioFormat, audioBufSize: Int, localUser: User, localAddress: InetSocketAddress): Props = Props(classOf[PeerActor], remoteAddress, socket, initialState, audioFormat, audioBufSize, localUser, localAddress)
+  def props(remoteAddress: InetSocketAddress, socket: ActorRef, initialState: PeerActor.InitialState, localUser: User, localAddress: InetSocketAddress): Props = Props(classOf[PeerActor], remoteAddress, socket, initialState, localUser, localAddress)
   case object Disconnect
   case object PlayAudio
   case object MuteAudio
   case object StoppedSpeaking
+
+  case class SetMixer(lineInfo: DataLine.Info, mixerInfo: Mixer.Info)
 
   case class LogAudioToFile(filename: String)
   case class CloseLogFile(filename: String)
@@ -49,8 +51,6 @@ class PeerActor(
     val remoteAddress: InetSocketAddress,
     private var socket: ActorRef,
     initialState: PeerActor.InitialState,
-    audioFormat: AudioFormat,
-    audioBufSize: Int,
     localUser: User,
     localAddress: InetSocketAddress) extends Actor with ActorLogging {
   import context._
@@ -69,16 +69,32 @@ class PeerActor(
   var dynHandlers = scala.collection.mutable.SortedSet[HcMessageHandler]()
 
   /* create the Opus decoder, and audio player actors */
-  val nameSuffix = "-" + remoteAddress.toString.replace("/", "")
-  /* TODO: error recovery for players */
-  val player = context.actorOf(AudioPlayer.props(audioFormat, audioBufSize), "hc-player" + nameSuffix)
-  val decoder = context.actorOf(Decoder.props(Sf48000, 1), "hc-decoder" + nameSuffix)
-
+  //val nameSuffix = "-" + remoteAddress.toString.replace("/", "")
+  val decoder = context.actorOf(Decoder.props(Sf48000, 1), "hc-decoder")
   var activeFileWriters = scala.collection.mutable.Map[String, ActorRef]()
   var audioSubscribers = scala.collection.mutable.Set[ActorRef]()
   //this stuff should be conditional
   audioSubscribers += decoder
-  decoder ! AddSubscriber(player)
+
+  /* TODO: error recovery for players
+   * TODO: volume saved across mixers?
+   */
+  var lineInfo: Option[DataLine.Info] = None
+  var mixerInfo: Option[Mixer.Info] = None
+  var player: Option[ActorRef] = None
+  var playerI = 0
+  def respawnPlayer(): Unit = {
+    player.foreach(_ ! Kill)
+    /* TODO: should these be get? */
+    player = Some(context.actorOf(AudioPlayer.props(lineInfo.get, mixerInfo.get), s"hc-player-$playerI"))
+    decoder ! AddSubscriber(player.get)
+    if (peerState.get.muted) {
+      player.foreach(_ ! AudioControl.Mute)
+    } else {
+      player.foreach(_ ! AudioControl.Unmute)
+    }
+    playerI += 1
+  }
 
   def updateState(newPeerState: Peer): Unit = {
     peerState = Some(newPeerState)
@@ -219,17 +235,6 @@ class PeerActor(
   val muteAudioHandler = new HcMessageHandler(0, {
     case HcMessage(MsgTypeAudio, msgLength, payload) => Unit
   })
-  /* TODO: these shouldnt be in TCP protocol, revise to notifications, like *im done sending audio*
-   * treat them more like hints, rather than directives
-   */
-  /*val audioControlHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeMuteAudio, msgLength, payload) =>
-      dynHandlers -= playAudioHandler
-      dynHandlers += muteAudioHandler
-    case HcMessage(MsgTypePlayAudio, msgLength, payload) =>
-      dynHandlers += playAudioHandler
-      dynHandlers -= muteAudioHandler
-  })*/
   /* TODO: safe handling, not .require.value */
   val pexHandler = new HcMessageHandler(0, {
     //ip4 - list of (ipv4{32-bit}, port{16-bit})
@@ -258,22 +263,28 @@ class PeerActor(
      * the decoded audio stream, we can't stop decoding, otherwise we can't log.
      * this means there are a lot of different states to account for, internal to PeerActor
      */
+    /* TODO: log feedback for missing players */
     case PlayAudio =>
       log.debug(s"now playing audio")
       dynHandlers += playAudioHandler
       dynHandlers -= muteAudioHandler
-      player ! AudioControl.Unmute
+      player.foreach(_ ! AudioControl.Unmute)
       updateState(peerState.get.copy(muted = false))
     case MuteAudio =>
       log.debug(s"now muting audio")
       dynHandlers -= playAudioHandler
       dynHandlers += muteAudioHandler
-      player ! AudioControl.Mute
+      player.foreach(_ ! AudioControl.Mute)
       updateState(peerState.get.copy(muted = true))
 
     case AudioControl.SetVolume(volume) =>
-      player ! AudioControl.SetVolume(volume)
+      player.foreach(_ ! AudioControl.SetVolume(volume))
       updateState(peerState.get.copy(volume = volume))
+
+    case SetMixer(newLineInfo, newMixerInfo) =>
+      lineInfo = Some(newLineInfo)
+      mixerInfo = Some(newMixerInfo)
+      respawnPlayer()
 
     case StoppedSpeaking => updateState(peerState.get.copy(speaking = false))
 

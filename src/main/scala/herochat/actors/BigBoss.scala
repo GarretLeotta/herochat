@@ -7,7 +7,7 @@ import scala.collection.mutable.Map
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-import akka.actor.{ActorRef, Props, Actor, Terminated, ActorLogging}
+import akka.actor.{ActorRef, Props, Actor, Terminated, Kill, ActorLogging}
 import akka.io.{IO, Tcp}
 import akka.util.{Timeout, ByteString}
 import akka.pattern.ask
@@ -83,6 +83,9 @@ object BigBoss {
   case object GetSupportedMixers
   case class SetInputMixer(mixer: Mixer.Info)
   case class SetOutputMixer(mixer: Mixer.Info)
+
+  case class DebugInMixerIndex(index: Int)
+  case class DebugOutMixerIndex(index: Int)
   //Log Decoded audio
   //case class StartLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
   //case class StopLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
@@ -118,9 +121,8 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   val sampleSizeBytes = sampleSize / 8
   val channels = 1
   /* bufSize[InSeconds] = (bufSize / (channels * sampleSizeBytes)) / sampleRate */
+  /* TODO: not hardcoded buffer size */
   val bufSize = 24000
-  //val inDeviceName = "Microphone (INSIGNIA USB MIC De"
-  //val outDeviceName = "Speakers (Realtek High Definition Audio)"
 
   val pcmFmt = WavCodec.PcmFormat(
     encoding,
@@ -141,21 +143,13 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
     Thread.currentThread.setContextClassLoader(old_cl)
   }
 
-
+  /* TODO: handle edge case where there are no supported mixers */
   val sourceInfo = new DataLine.Info(classOf[SourceDataLine], format, bufSize)
   val targetInfo = new DataLine.Info(classOf[TargetDataLine], format, bufSize)
-
-  var sourceMixes = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
-  var targetMixes = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
-
+  val sourceMixes = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
+  val targetMixes = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
   var sourceMixer = sourceMixes(0)
   var targetMixer = targetMixes(0)
-
-  println(s"$self: supp mixer: ${AudioSystem.getMixerInfo.mkString(" :: ")}")
-  println(s"$self: source: ${AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo).mkString(" :: ")}")
-  println(s"$self: target: ${AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo).mkString(" :: ")}")
-
-
 
   //IP address we listen for new connections on
   /* TODO: LATER: support modifying what port we listen on during runtime */
@@ -166,18 +160,9 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   val filereader = context.actorOf(FileReader.props(), "hc-filereader")
   val filewriter = context.actorOf(FileWriter.props(), "hc-filewriter")
 
-  //For debug purposes, if we want to play sound directly from a file
-  val player = context.actorOf(AudioPlayer.props(format, bufSize, sourceMixer), "hc-player")
   val decoder = context.actorOf(Decoder.props(Sf48000, 1), "hc-decoder")
-
-  var recorder: Option[ActorRef] = None
   val encoder = context.actorOf(Encoder.props(20, Sf48000, 1), "hc-encoder")
-  if (record) {
-    recorder = Some(context.actorOf(Recorder.props(format, bufSize, targetMixer), "hc-recorder"))
-    recorder.foreach(_ ! AddSubscriber(encoder))
-    /* This is conditional */
-    recorder.foreach(_ ! AddSubscriber(filewriter))
-  }
+
 
   /* Table of active peers */
   val peerTable = new PeerTable(self)
@@ -208,6 +193,34 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
     addr.toString.replace("/", "") + "-" + i
   }
 
+  /* Initialize Sound */
+  //To play sounds from UI, or direct file reads (debugging)
+  /* TODO: refresh player when change output mixer */
+  val player = context.actorOf(AudioPlayer.props(sourceInfo, sourceMixer), "hc-player")
+
+  var recI = 0
+  var recorder: Option[ActorRef] = None
+  if (record) {
+    respawnRecorder()
+  }
+  def respawnRecorder(): Unit = {
+    /* Recorders block when recording sound, so kill it immediately, this will send a Terminated
+     * msg back to us.
+     * TODO: handle terminated, NOTE: use case Terminated(actor) if actor == recorder
+     * This will only handle the current active recorder, ignoring the one we just killed
+     */
+    recorder.foreach(_ ! Kill)
+    recorder = Some(context.actorOf(Recorder.props(targetInfo, targetMixer), s"hc-recorder-$recI"))
+    recorder.foreach(_ ! AddSubscriber(encoder))
+    /* TODO: this should be conditional */
+    recorder.foreach(_ ! AddSubscriber(filewriter))
+    if (localPeerState.speaking) {
+      self ! BigBoss.StartRecord
+    }
+    recI += 1
+  }
+
+
   /* Only send Pex messages to the newly connected peer
    */
   def sendPexMessage(newPeer: ActorRef): Unit = {
@@ -225,6 +238,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   def completeHandshake(remoteAddr: InetSocketAddress, peerRef: ActorRef, remoteUser: User, pexAddr: InetSocketAddress): Unit = {
     log.debug(s"Completing Handshake for: $remoteAddr, $remoteUser, $peerRef, $pexAddr")
     peerRef ! PeerActor.HandshakeComplete
+    peerRef ! PeerActor.SetMixer(sourceInfo, sourceMixer)
     context watch peerRef
     peerTable.completeShake(remoteAddr, peerRef, remoteUser, pexAddr)
     encoder ! AddSubscriber(peerRef)
@@ -237,7 +251,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
       log.debug(s"BigBoss.Connect checking for valid address: $remoteAddress")
       if (peerTable.preShakeVerify(remoteAddress, listenAddress)) {
         log.debug(s"send connection to $remoteAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, format, bufSize, localUser, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, localUser, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
         peerTable.shakingPeers += ((remoteAddress, peerRef, true, Instant.now))
       } else {
         log.debug(s"$remoteAddress is an invalid connection address")
@@ -252,7 +266,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
         socketRef ! Write(ByteString(HcDisconnect.toByteArray))
       } else {
         log.debug(s"Creating Peer actor: $remoteAddress, $localAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, format, bufSize, localUser, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, localUser, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
         socketRef ! Register(peerRef)
         peerTable.shakingPeers += ((remoteAddress, peerRef, false, Instant.now))
       }
@@ -368,8 +382,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
     case BigBoss.StartSpeaking if !localPeerState.muted =>
       /* TODO: this is conditional based on logging */
       /* TODO: filename based on name */
-      //filewriter ! FileWriter.Open("test_data/output_test.wav")
-      filewriter ! FileWriter.OpenWav("test_data/output_test.wav", pcmFmt)
+      //filewriter ! FileWriter.OpenWav("test_data/output_test.wav", pcmFmt)
 
       self ! BigBoss.StartRecord
       updateState(localPeerState.copy(speaking = true))
@@ -417,8 +430,6 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
       val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
       Thread.currentThread.setContextClassLoader(cl)
 
-      val sourceInfo = new DataLine.Info(classOf[SourceDataLine], format, bufSize)
-      val targetInfo = new DataLine.Info(classOf[TargetDataLine], format, bufSize)
       val sourceMixers = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
       val targetMixers = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
 
@@ -430,17 +441,18 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
 
       Thread.currentThread.setContextClassLoader(old_cl)
     case BigBoss.SetInputMixer(mixer) =>
-      log.debug(s"new input mixer recved: $mixer")
-      //change targetMixer variable
-      //kill recorder
-      //respawn recorder with new target mixer
+      /* TODO: make sure that if we change mixer in bigboss, it is updated in the GUI */
+      log.debug(s"new input mixer recved: $mixer, $targetMixer")
+      if (mixer != targetMixer) {
+        targetMixer = mixer
+        respawnRecorder()
+      }
     case BigBoss.SetOutputMixer(mixer) =>
       log.debug(s"new output mixer recved: $mixer")
-      //change sourceMixer variable
-      //kill peer players
-      //kill player
-      //respawn peer players and boss player with new target mixer
-
+      if (mixer != sourceMixer) {
+        sourceMixer = mixer
+        peerTable.shookPeers.foreach( _._2 ! PeerActor.SetMixer(sourceInfo, sourceMixer) )
+      }
 
     case BigBoss.ReadFile(filename) =>
       filereader ! FileReader.Open(filename)
@@ -463,6 +475,28 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
 
     case BigBoss.RecordAudioFile(filename, filetype) =>
       ()
+
+
+    case BigBoss.DebugInMixerIndex(index) =>
+      val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
+      val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
+      Thread.currentThread.setContextClassLoader(cl)
+
+      val targetMixers = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
+      self ! BigBoss.SetInputMixer(targetMixers(index))
+      log.debug(s"Changing input mixer to index $index: ${targetMixers(index)}")
+
+      Thread.currentThread.setContextClassLoader(old_cl)
+    case BigBoss.DebugOutMixerIndex(index) =>
+      val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
+      val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
+      Thread.currentThread.setContextClassLoader(cl)
+
+      val sourceMixers = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
+      self ! BigBoss.SetOutputMixer(sourceMixers(index))
+      log.debug(s"Changing output mixer to index $index: ${sourceMixers(index)}")
+
+      Thread.currentThread.setContextClassLoader(old_cl)
 
     /*
     case BigBoss.DebugPCMFromFile(filename) =>

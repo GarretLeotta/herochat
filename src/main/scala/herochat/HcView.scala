@@ -58,6 +58,7 @@ class HcView(localUser: User) extends Actor with ActorLogging {
   val guiInstance = new HcGUI(localUser)(self)
   val guiThread = new Thread(new Runnable() {
     override def run(): Unit = {
+      log.debug(s"Initializing GUI thread")
       guiInstance.main(Array[String]())
       //when thread ends, ShutDown actor system
       log.debug(s"GUI thread ended, shutting down Actor System")
@@ -96,10 +97,12 @@ class HcView(localUser: User) extends Actor with ActorLogging {
 
   def init_receive: Receive = {
     //Events from UI
-    case HcView.ShowDefault =>
+    case HcView.ShowDefault => Platform.runLater {
       guiInstance.showDefault()
-    case HcView.ShowOptions =>
-      guiInstance.showOptions()
+    }
+    case HcView.ShowOptions => Platform.runLater {
+        guiInstance.showOptions()
+      }
       parent ! ToModel(BigBoss.GetSupportedMixers)
     case HcView.ConnectString(input: String) =>
       input match {
@@ -141,16 +144,14 @@ class HcView(localUser: User) extends Actor with ActorLogging {
 
     case HcView.InputMixers(currentMixer, mixers) =>
       log.debug(s"got input ${mixers.mkString(" :: ")}")
-      guiInstance.updateOptionsInputMixers(currentMixer, mixers)
-      //guiInstance.inMixers.clear()
-      //guiInstance.inMixers ++= mixers
-      //guiInstance.selectedInMixer = currentMixer
+      Platform.runLater {
+        guiInstance.updateOptionsInputMixers(currentMixer, mixers)
+      }
     case HcView.OutputMixers(currentMixer, mixers) =>
       log.debug(s"got output ${mixers.mkString(" :: ")}")
-      guiInstance.updateOptionsOutputMixers(currentMixer, mixers)
-      //guiInstance.outMixers.clear()
-      //guiInstance.outMixers ++= mixers
-      //guiInstance.selectedOutMixer = currentMixer
+      Platform.runLater {
+        guiInstance.updateOptionsOutputMixers(currentMixer, mixers)
+      }
 
     case ToModel(msg) => parent ! ToModel(msg)
 

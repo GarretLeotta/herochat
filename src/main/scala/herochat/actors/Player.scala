@@ -39,16 +39,17 @@ class PlayQueue(sourceLine: SourceDataLine) extends Actor with ActorLogging {
         sourceLine.stop()
         parent ! PeerActor.StoppedSpeaking
       }
+    case msg => log.debug(s"Bad msg $msg")
   }
 }
 
 
 object AudioPlayer {
-  def props(format: AudioFormat, audioBufSize: Int, mixerInfo: Mixer.Info): Props = Props(classOf[AudioPlayer], format, audioBufSize, mixerInfo)
+  def props(lineInfo: DataLine.Info, mixerInfo: Mixer.Info): Props = Props(classOf[AudioPlayer], lineInfo, mixerInfo)
 }
 
 /*  */
-class AudioPlayer(format: AudioFormat, audioBufSize: Int, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
+class AudioPlayer(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
   import context._
   import AudioPlayer._
   import herochat.AudioControl._
@@ -63,14 +64,13 @@ class AudioPlayer(format: AudioFormat, audioBufSize: Int, mixerInfo: Mixer.Info)
     Thread.currentThread.setContextClassLoader(old_cl)
   }
 
+  log.debug(s"AudioPlayer starting on Mixer: $mixerInfo")
   //Initialize javax sound system
-
-  val sourceInfo = new DataLine.Info(classOf[SourceDataLine], format, audioBufSize)
   val inmix = AudioSystem.getMixer(mixerInfo)
-  val sourceLine = inmix.getLine(sourceInfo).asInstanceOf[SourceDataLine]
+  val sourceLine = inmix.getLine(lineInfo).asInstanceOf[SourceDataLine]
   val playQueue = context.actorOf(PlayQueue.props(sourceLine), "playQueue")
 
-  log.debug(s"this line: $sourceLine, ${inmix.getMaxLines(sourceInfo)}")
+  log.debug(s"this line: $sourceLine, ${inmix.getMaxLines(lineInfo)}")
   log.debug(s"inmix lines: ${inmix.getSourceLines.mkString(" :: ")}")
 
   def activateAudioLine() = {
@@ -81,15 +81,15 @@ class AudioPlayer(format: AudioFormat, audioBufSize: Int, mixerInfo: Mixer.Info)
   val mute = AudioUtils.getLineControl[BooleanControl](sourceLine, BooleanControl.Type.MUTE)
   val gain = AudioUtils.getLineControl[FloatControl](sourceLine, FloatControl.Type.MASTER_GAIN)
   val nothere = AudioUtils.getLineControl[FloatControl](sourceLine, FloatControl.Type.AUX_SEND)
-  log.debug(s"volume stuff1: $mute, $gain, $nothere")
-  log.debug(s"volume stuff2: ${mute.map(_.getValue)}, ${gain.map(_.getValue)}, ${gain.map(_.getMinimum)}, ${gain.map(_.getMaximum)}, ${gain.map(_.getPrecision)}")
+  //log.debug(s"volume stuff1: $mute, $gain, $nothere")
+  //log.debug(s"volume stuff2: ${mute.map(_.getValue)}, ${gain.map(_.getValue)}, ${gain.map(_.getMinimum)}, ${gain.map(_.getMaximum)}, ${gain.map(_.getPrecision)}")
   //Some(-80.0), Some(6.0206), Some(0.625)
 
   def deactivateAudioLine() = {
     sourceLine.close()
   }
 
-  /* Should probably  */
+  /* Doesn't belong here */
   def percent_to_decibel(percent_volume: Double): Double = {
     10.0 * scala.math.log10(percent_volume)
   }
@@ -114,9 +114,8 @@ class AudioPlayer(format: AudioFormat, audioBufSize: Int, mixerInfo: Mixer.Info)
 
     case msg: AudioData => playQueue ! msg
     case PeerActor.StoppedSpeaking => parent ! PeerActor.StoppedSpeaking
-    case _ @ msg => log.debug(s"$self-active: Bad Msg: $msg")
+    case _ @ msg => log.debug(s"Bad Msg: $msg")
   }
-
 
   def receive = active
 }

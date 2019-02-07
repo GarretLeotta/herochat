@@ -4,6 +4,9 @@
 #
 
 .ensime_cache
+/test_data
+/logs
+
 
 /lib/*.jar
 
@@ -20,6 +23,3 @@
 /test/macro-annot/target/
 /build-sbt/
 local.sbt
-
-/test_data
-/logs

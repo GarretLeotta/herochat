@@ -27,7 +27,7 @@ class SnakeController(
   import context._
   import SnakeController._
 
-  new SFXPanel(); // trick: create empty panel to initialize toolkit
+  new SFXPanel() // trick: create empty panel to initialize toolkit
 
   val model = context.actorOf(BigBoss.props(41330, user, playAudio), "bigboss")
   //there is a problem with this dispatcher, seems to hang the view actor because the Platform is exited

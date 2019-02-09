@@ -61,6 +61,13 @@ class LobbyPane(var pmap: ObservableMap[User, Peer], localUser: User)(implicit v
     case x => println(s"pmap: unknown change sub: $x")
   }}
 
+  def customPeerString(peerState: Peer): String = {
+    peerState.user.nickname + "; " +
+    peerState.muted + "; " +
+    peerState.deafened + "; " +
+    peerState.volume
+  }
+
   /* This will become a problem point. We create a new peer node every time the state changes.
    * So when we change the state with the context menu still up, a fresh context menu is created
    * but not shown.
@@ -73,7 +80,7 @@ class LobbyPane(var pmap: ObservableMap[User, Peer], localUser: User)(implicit v
       prefHeight = 20
       spacing = 5
       children = List(
-        new Text(peerState.toString) {
+        new Text(customPeerString(peerState)) {
           onMouseClicked = { me: MouseEvent => me.button match {
             case MouseButton.Secondary =>
               contextMenu.show(this, me.getScreenX(), me.getScreenY())

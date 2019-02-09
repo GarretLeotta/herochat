@@ -1,5 +1,5 @@
 package herochat
 
+import java.util.UUID
 
-
-case class User(val id: Int, val nickname: String)
+case class User(val id: UUID, val nickname: String)

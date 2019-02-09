@@ -1,14 +1,11 @@
-what about a Forward(ActorRef, Message) class, that tells the next actor to forward the message to the next guy
-  drawback 1: need to add forwarding logic to every fucking actor class
-  drawback 2: (benefit actually) Forward(A1, Forward(A2, Forward(A3, Forward(A4, Forward(A5, "Fuck You")))))
-This is a good idea, just use speicific forward messages, ie ToBigBoss, ToView
+SETTINGS FILE
+  create a settings file in appdata, (cross-platform)
+  create it on startup with defaults
+  write to it when settings change
 
-
-Enhance file reading/writing features
-  support peer joining mid-playback
-  support opening multiple files in order
-  support opening multiple files at once
-
+Right now, hard to test that audio is still sent after reconnect.
+When we read an audio file, we read it all really quickly and send.
+Need to make a rate-limited file reader for testing
 
 Should BigBoss hold a record of messages received - probably
 Need to think more about how this works, replay and all that
@@ -24,7 +21,7 @@ Completion:
       Generally, add a UI hook where users decide to accept connections (PEX excluded?)
   Friends List
 
-
-Right now, hard to test that audio is still sent after reconnect.
-When we read an audio file, we read it all really quickly and send.
-Need to make a rate-limited file reader for testing
+Enhance file reading/writing features
+  support peer joining mid-playback
+  support opening multiple files in order
+  support opening multiple files at once

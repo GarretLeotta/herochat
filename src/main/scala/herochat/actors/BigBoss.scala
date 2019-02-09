@@ -18,6 +18,7 @@ import java.net.{InetAddress, InetSocketAddress, NetworkInterface}
 import java.io.{FileOutputStream}
 import java.time.{Instant}
 import java.time.temporal.{ChronoUnit}
+import java.util.UUID
 
 import za.co.monadic.scopus.{Sf8000, Sf48000, Voip}
 import za.co.monadic.scopus.opus.{OpusDecoderShort}
@@ -29,13 +30,13 @@ import scodec.codecs._
 import za.co.monadic.scopus.{Sf48000}
 
 import herochat.HcCodec._
-import herochat.{ChatMessage, User, HcView, Tracker, PeerTable, Peer, PeerState, AudioControl, WavCodec, AudioUtils}
+import herochat.{Settings, ChatMessage, User, HcView, Tracker, PeerTable, Peer, PeerState, AudioControl, WavCodec, AudioUtils}
 import herochat.SnakeController.ToView
 
 import javax.sound.sampled.{DataLine, TargetDataLine, SourceDataLine, AudioSystem, Mixer}
 
 object BigBoss {
-  def props(port: Int, localUser: User, record: Boolean): Props = Props(classOf[BigBoss], port, localUser, record)
+  def props(settings: Settings, record: Boolean): Props = Props(classOf[BigBoss], settings, record)
 
   //Don't know about this extends thing, probably a bad idea
   //It would be cool if I could make a macro, so didnt have to write etends every time
@@ -106,33 +107,12 @@ object BigBoss {
  *
  * TODO: audio probably playing too fast/slow not sure which, decoding from opus at 48k, playing at 44.1k
  */
-class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor with ActorLogging {
+class BigBoss(
+    settings: Settings,
+    record: Boolean,
+  ) extends Actor with ActorLogging {
   import context._
   import Tcp._
-
-  //Audio Recording and Encoding settings
-  /**
-   * input args: audio encoding, sample rate, sampleSizeInBits, channels, frame size, frame rate, big endian,
-   * bufferSize, audio device name, output actor
-   */
-  val encoding = AudioFormat.Encoding.PCM_SIGNED
-  val sampleRate = 44100
-  val sampleSize = 16
-  val sampleSizeBytes = sampleSize / 8
-  val channels = 1
-  /* bufSize[InSeconds] = (bufSize / (channels * sampleSizeBytes)) / sampleRate */
-  /* TODO: not hardcoded buffer size */
-  val bufSize = 24000
-
-  val pcmFmt = WavCodec.PcmFormat(
-    encoding,
-    channels,
-    sampleRate,
-    sampleRate * channels * sampleSizeBytes,
-    channels * sampleSizeBytes,
-    sampleSize
-  )
-  val format = pcmFmt.toJavax
 
   //sbt compatibility - Need to change class loader for javax to work
   val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
@@ -144,6 +124,8 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   }
 
   /* TODO: handle edge case where there are no supported mixers */
+  val format = settings.soundSettings.audioFormat.toJavax
+  val bufSize = settings.soundSettings.bufferSize
   val sourceInfo = new DataLine.Info(classOf[SourceDataLine], format, bufSize)
   val targetInfo = new DataLine.Info(classOf[TargetDataLine], format, bufSize)
   val sourceMixes = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
@@ -151,10 +133,35 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   var sourceMixer = sourceMixes(0)
   var targetMixer = targetMixes(0)
 
+  /*
+  var settings1 = new herochat.Settings(
+      herochat.SoundSettings(pcmFmt, bufSize, targetMixer, sourceMixer),
+      Peer(localUser, false, false, false, 1.0),
+      listenPort
+  )
+  var settings = herochat.Settings.defaultSettings
+  settings.addPeer(Peer(User(new UUID(0,1), "hey"), true, true, false, 0.4))
+  settings.addPeer(Peer(User(new UUID(0,2), "wow"), false, true, false, 2.0))
+  log.debug(s"settings: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
+  settings.writeSettingsFile
+  val newSettings = herochat.Settings.readSettingsFile
+  log.debug(s"settings from json: ${newSettings.soundSettings}, ${newSettings.userSettings}, ${newSettings.peerSettings}")
+  */
+  /*
+  import org.json4s._
+  import org.json4s.native.Serialization
+  implicit val formats = DefaultFormats + new herochat.MixerInfoSerializer()
+  log.debug(s"HELLO ${Serialization.write(sourceMixer)}")
+  log.debug(s"HELLO ${Serialization.write(sourceMixer)}")
+  sourceMixes.foreach{mix: Mixer.Info => log.debug(s"source mixers: ${Serialization.write(mix)}")}
+  targetMixes.foreach{mix: Mixer.Info => log.debug(s"target mixers: ${Serialization.write(mix)}")}
+  */
+
+
   //IP address we listen for new connections on
   /* TODO: LATER: support modifying what port we listen on during runtime */
-  val listenAddress = new InetSocketAddress("::1", listenPort)
-  val connHandler = context.actorOf(ConnectionHandler.props(listenPort), "hc-connection-handler")
+  val listenAddress = new InetSocketAddress("::1", settings.localPort)
+  val connHandler = context.actorOf(ConnectionHandler.props(settings.localPort), "hc-connection-handler")
 
   /* TODO: support multiple simultaneous file reads/writes */
   val filereader = context.actorOf(FileReader.props(), "hc-filereader")
@@ -167,7 +174,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
   /* Table of active peers */
   val peerTable = new PeerTable(self)
 
-  var localPeerState = Peer(localUser, true, false, false, 1.0)
+  var localPeerState = settings.userSettings
   parent ! ToView(PeerState.NewPeer(localPeerState))
 
   def updateState(newPeerState: Peer): Unit = {
@@ -251,7 +258,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
       log.debug(s"BigBoss.Connect checking for valid address: $remoteAddress")
       if (peerTable.preShakeVerify(remoteAddress, listenAddress)) {
         log.debug(s"send connection to $remoteAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, localUser, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, settings.userSettings.user, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
         peerTable.shakingPeers += ((remoteAddress, peerRef, true, Instant.now))
       } else {
         log.debug(s"$remoteAddress is an invalid connection address")
@@ -266,7 +273,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
         socketRef ! Write(ByteString(HcDisconnect.toByteArray))
       } else {
         log.debug(s"Creating Peer actor: $remoteAddress, $localAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, localUser, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, settings.userSettings.user, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
         socketRef ! Register(peerRef)
         peerTable.shakingPeers += ((remoteAddress, peerRef, false, Instant.now))
       }
@@ -303,7 +310,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
           removePreShakePeer(newPeer)
         } else {
           if (newPeer._3) {
-            if (localUser.id < remoteUser.id) {
+            if (settings.userSettings.user.id.compareTo(remoteUser.id) < 0) {
               log.debug(s"pconf 3: ${oldPeer}, ${newPeer}")
               removePostShakePeer(oldPeer)
               completeHandshake(remoteAddress, peerRef, remoteUser, remotePexAddr)
@@ -312,7 +319,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
               removePreShakePeer(newPeer)
             }
           } else if (oldPeer._3) {
-            if (localUser.id < remoteUser.id) {
+            if (settings.userSettings.user.id.compareTo(remoteUser.id) < 0) {
               log.debug(s"pconf 5: ${oldPeer}, ${newPeer}")
               removePreShakePeer(newPeer)
             } else {
@@ -404,7 +411,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
           updateState(localPeerState.copy(muted = setMute))
       }
     case BigBoss.SetDeafenUser(user, setDeafen) =>
-      if (user == localUser) {
+      if (user == settings.userSettings.user) {
         if (setDeafen) {
           peerTable.shookPeers.foreach(_._2 ! PeerActor.MuteAudio)
         } else {
@@ -468,7 +475,7 @@ class BigBoss(listenPort: Int, localUser: User, record: Boolean) extends Actor w
     case BigBoss.PlayAudioFile(filename, filetype) =>
       if (filetype == "wav") {
         filereader ! AddSubscriber(encoder)
-        filereader ! FileReader.OpenWav(filename, pcmFmt)
+        filereader ! FileReader.OpenWav(filename, settings.soundSettings.audioFormat)
       } else {
         log.debug(s"Unsupported Filetype: $filename, $filetype")
       }

@@ -7,7 +7,6 @@ import scodec.bits._
 import scodec.codecs._
 
 object WavCodec {
-
   /*
    * Need to append this constant to front of WAV chunks
    * ("riff_id" | constant(hex"52494646")) "RIFF"

@@ -5,6 +5,7 @@ import scodec.{Codec, CodecTransformation, SizeBound}
 import scodec.bits._
 import scodec.codecs._
 
+import java.util.UUID
 
 /*
  */
@@ -20,7 +21,7 @@ object HcCodec {
   })}.as[HcMessage]
 
   //Why are we self-reporting the port?
-  def HCAuthMessage(uuid: Int, nickname: String, port: Int) = {
+  def HCAuthMessage(uuid: UUID, nickname: String, port: Int) = {
     val authPayload = List(AuthPayload.AuthTypeUUID(uuid),
                           AuthPayload.AuthTypeNickname(nickname),
                           AuthPayload.AuthTypePort(port)).
@@ -96,14 +97,14 @@ object AuthPayload {
   type AuthPair = Either[UnrecognizedType, AuthType]
 
   sealed trait AuthType
-  case class AuthTypeUUID(uuid: Int) extends AuthType
+  case class AuthTypeUUID(uuid: UUID) extends AuthType
   case class AuthTypeLobbyName(lobbyName: String) extends AuthType
   case class AuthTypeNickname(nickname: String) extends AuthType
   case class AuthTypePort(port: Int) extends AuthType
 
   case class UnrecognizedType(authType: Int, data: BitVector)
 
-  implicit val uuidCodec: Codec[AuthTypeUUID] = uint16.as[AuthTypeUUID]
+  implicit val uuidCodec: Codec[AuthTypeUUID] = uuid.as[AuthTypeUUID]
   implicit val lobbyNameCodec: Codec[AuthTypeLobbyName] = utf8.as[AuthTypeLobbyName]
   implicit val nicknameCodec: Codec[AuthTypeNickname] = utf8.as[AuthTypeNickname]
   implicit val portCodec: Codec[AuthTypePort] = uint16.as[AuthTypePort]

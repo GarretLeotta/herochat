@@ -42,8 +42,6 @@ class SnakeController(
   log.debug(s"settings from json: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
 
   val model = context.actorOf(BigBoss.props(settings, recordAudio), "bigboss")
-  //there is a problem with this dispatcher, seems to hang the view actor because the Platform is exited
-  //val view = context.actorOf(HcView.props().withDispatcher("scalafx-dispatcher"), "herochat-view")
   val view = context.actorOf(HcView.props(settings.userSettings.user), "herochat-view")
 
   def receive: Receive = {

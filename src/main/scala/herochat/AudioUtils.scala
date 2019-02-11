@@ -15,7 +15,9 @@ object AudioControl {
 
 object AudioUtils {
   def getSupportedMixers(lineInfo: Line.Info): Array[Mixer] = {
-    AudioSystem.getMixerInfo.map(AudioSystem.getMixer(_)).filter(_.isLineSupported(lineInfo))
+    sbtCompatibilityBlock {
+      AudioSystem.getMixerInfo.map(AudioSystem.getMixer(_)).filter(_.isLineSupported(lineInfo))
+    }
   }
 
   def getMixerInfo(mixName :String): Mixer.Info = {
@@ -36,5 +38,15 @@ object AudioUtils {
     } catch {
       case iae: IllegalArgumentException => None
     }
+  }
+
+  /* SBT & javax don't work well together. I should make this a macro or something so it isn't included on release */
+  def sbtCompatibilityBlock[R](op: => R) = {
+    val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
+    val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
+    Thread.currentThread.setContextClassLoader(cl)
+    val ret = op
+    Thread.currentThread.setContextClassLoader(old_cl)
+    ret
   }
 }

@@ -17,15 +17,15 @@ import herochat.{User, ChatMessage, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
-class OptionsPane(localUser: User)(implicit val viewActor: ActorRef) extends BorderPane {
+class OptionsPane(var localUser: ObjectProperty[User])(implicit val viewActor: ActorRef) extends BorderPane {
 
   val audioTab = new OptionsAudioPane()
-  val userTab = new OptionsUserPane()
+  val userTab = new OptionsUserPane(localUser)
 
   var selectedTab =  ObjectProperty[Pane](this, "selectedTab", userTab)
   /* How to Order the tabs?? */
   var activeTabs = ObservableMap[String, Pane](
-    "Audio" -> audioTab.content,
+    "Audio" -> audioTab,
     "User" -> userTab,
   )
 
@@ -46,7 +46,7 @@ class OptionsPane(localUser: User)(implicit val viewActor: ActorRef) extends Bor
     padding = Insets(20)
     children = activeTabs.map(tabButton)
   }
-  center = audioTab.content
+  center = selectedTab.value
   right = new OptionsExitPane().content
 }
 

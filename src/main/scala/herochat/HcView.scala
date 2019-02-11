@@ -42,6 +42,7 @@ object HcView {
   case class AddPeer(peerState: Peer) extends HcViewMessage
   case class UpdatePeerState(newState: Peer) extends HcViewMessage
   case class RemovePeer(user: User) extends HcViewMessage
+  case class ChangeNickname(oldUser: User, newUser: User) extends HcViewMessage
 
   case class InputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
   case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
@@ -131,15 +132,18 @@ class HcView(localUser: User) extends Actor with ActorLogging {
     //Events from Controller
     case PeerState.NewPeer(peerState) => Platform.runLater {
       guiInstance.userMap += ((peerState.user, peerState))
-      //println(s"view added peer $peerState, ${guiInstance.userMap}")
     }
     case PeerState.UpdatePeer(peerState) => Platform.runLater {
       guiInstance.userMap.update(peerState.user, peerState)
-      //println(s"view updated peer $peerState, ${guiInstance.userMap}")
     }
     case PeerState.RemovePeer(peerState) => Platform.runLater {
       guiInstance.userMap -= peerState.user
-      //println(s"view removed peer $peerState, ${guiInstance.userMap}")
+    }
+    case HcView.ChangeNickname(oldUser, newUser) => Platform.runLater {
+      val peerState = guiInstance.userMap(oldUser).copy(user = newUser)
+      guiInstance.localUserProp.update(newUser)
+      guiInstance.userMap -= oldUser
+      guiInstance.userMap += ((newUser, peerState))
     }
 
     case HcView.InputMixers(currentMixer, mixers) =>

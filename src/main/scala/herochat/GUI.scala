@@ -28,32 +28,25 @@ case class ChatMessage(sender: User, msg: String) {
  */
 class HcGUI(localUser: User)(implicit val viewActor: ActorRef) extends JFXApp {
   println(s"gui initialized with view: $viewActor")
-  //need somewhere to store old messages for future
-  //need to be able to serialize users, detect 1 user across IPs that might change
 
+
+  var localUserProp = ObjectProperty[User](this, "localUser", localUser)
 
   var usersInLobby = ObservableBuffer[Peer]()
   var userMap = ObservableMap[User, Peer]()
   var serverList = ObservableBuffer[User]()
 
-  /*
-  var inMixers = ObservableBuffer[Mixer.Info]()
-  var selectedInMixer = ObjectProperty[Mixer.Info](this, "selectedInputMixer")
-  var outMixers = ObservableBuffer[Mixer.Info]()
-  var selectedOutMixer = ObjectProperty[Mixer.Info](this, "selectedInputMixer")
-  */
-
   var messages = ObservableBuffer[ChatMessage]()
 
   val defaultScene = new BorderPane {
     top = new TitlePane().content
-    left = new LobbyPane(userMap, localUser).content
+    left = new LobbyPane(userMap, localUserProp).content
     center = new ChatPane(messages).content
     right = new ServerPane(serverList).content
-    bottom = new TestButtonPane(localUser).content
+    bottom = new TestButtonPane(localUserProp).content
   }
 
-  val optionsScene = new OptionsPane(localUser)
+  val optionsScene = new OptionsPane(localUserProp)
 
   val primaryScene = new Scene {
     stylesheets += getClass.getResource("styles.css").toExternalForm

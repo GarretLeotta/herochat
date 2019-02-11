@@ -12,6 +12,7 @@ import java.util.UUID
 import javafx.embed.swing.JFXPanel
 
 import actors.{BigBoss}
+import SnakeController.{ToModel, ToView}
 
 
 case object ShutDown
@@ -62,21 +63,21 @@ object MVCAkkaTest extends App {
     val controller = system.actorOf(SnakeController.props(killswitch, false, None), s"hcController")
     val bigBossT1 = system.actorOf(FakeController.props(killswitch, false, Some("settings.1.json")), "bigbosst1")
     Vector(
-      (2.0 seconds, bigBossT1, BigBoss.Connect(new InetSocketAddress("::1", 41330))),
-      (3.0 seconds, bigBossT1, BigBoss.SetMuteUser(User(new UUID(0,1), "Mememan"), false)),
-      (3.5 seconds, bigBossT1, BigBoss.StartSpeaking),
+      (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
+      (3.0 seconds, bigBossT1, ToModel(BigBoss.SetMuteUser(User(new UUID(0,1), "Mememan"), false))),
+      (3.5 seconds, bigBossT1, ToModel(BigBoss.StartSpeaking)),
     ) map {x => scheduleBulkTasks _ tupled x}
   }
   testFunctions("testHeadless") = testHeadless
 
   /* BigBoss with UI (SnakeController) acts as recorder */
   def testUI(args: Array[String]): Unit = {
-    val controller = system.actorOf(SnakeController.props(killswitch, false, None), s"hcController")
-    //val bigBossT1 = system.actorOf(BigBoss.props(41331, User(new UUID(0,1), "Mememan"), false), "bigbosst1")
+    val controller = system.actorOf(SnakeController.props(killswitch, true, None), s"hcController")
+    val bigBossT1 = system.actorOf(FakeController.props(killswitch, false, Some("settings.1.json")), "bigbosst1")
     //val bigBossT2 = system.actorOf(BigBoss.props(41332, User(new UUID(0,2), "Momomonkey"), false), "bigbosst2")
     Vector(
-      //(2.0 seconds, bigBossT1, BigBoss.Connect(new InetSocketAddress("::1", 41330))),
-      //(3.0 seconds, bigBossT1, BigBoss.Connect(new InetSocketAddress("::1", 41332))),
+      (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
+      //(3.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41332)))),
     ) map {x => scheduleBulkTasks _ tupled x}
   }
   testFunctions("testUI") = testUI

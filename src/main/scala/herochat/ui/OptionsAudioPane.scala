@@ -19,8 +19,11 @@ import herochat.{User, ChatMessage, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
-/* TODO: should extend pane */
-class OptionsAudioPane()(implicit val viewActor: ActorRef) {
+
+class OptionsAudioPane()(implicit val viewActor: ActorRef) extends VBox {
+  //style = "-fx-background-color: lightgreen"
+  spacing = 10
+  padding = Insets(20)
 
   var inMixers = ObservableBuffer[Mixer.Info]()
   var selectedInMixer = ObjectProperty[Mixer.Info](this, "selectedInputMixer")
@@ -56,7 +59,7 @@ class OptionsAudioPane()(implicit val viewActor: ActorRef) {
   val inMixerSelectBox = mixerComboBox(inMixers, selectedInMixer, ((mixer: Mixer.Info) => ToModel(BigBoss.SetInputMixer(mixer))))
   val outMixerSelectBox = mixerComboBox(outMixers, selectedOutMixer, ((mixer: Mixer.Info) => ToModel(BigBoss.SetOutputMixer(mixer))))
 
-  
+
   val audioSettings = new GridPane {
     hgap = 10
     vgap = 10
@@ -86,12 +89,7 @@ class OptionsAudioPane()(implicit val viewActor: ActorRef) {
     add(outMixerSelectBox, 1, 2)
   }
 
-  val content = new VBox {
-    //style = "-fx-background-color: lightgreen"
-    spacing = 10
-    padding = Insets(20)
-    children = Array(
-      audioSettings,
-    )
-  }
+  children = Array(
+    audioSettings,
+  )
 }

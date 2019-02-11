@@ -65,6 +65,8 @@ object BigBoss {
   case object StartSpeaking extends BigBossMessage
   case object StopSpeaking extends BigBossMessage
 
+  /* TODO: should these use User or UUID? */
+  case class SetNickname(user: User, newName: String) extends BigBossMessage
   case class SetMuteUser(user: User, setMute: Boolean) extends BigBossMessage
   case class SetDeafenUser(user: User, setDeafen: Boolean) extends BigBossMessage
   case class SetBlockUser(user: User, setBlock: Boolean) extends BigBossMessage
@@ -114,15 +116,6 @@ class BigBoss(
   import context._
   import Tcp._
 
-  //sbt compatibility - Need to change class loader for javax to work
-  val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
-  val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
-  Thread.currentThread.setContextClassLoader(cl)
-  override def postStop {
-    log.debug(s"Stopping, resetting thread context class loader")
-    Thread.currentThread.setContextClassLoader(old_cl)
-  }
-
   /* TODO: handle edge case where there are no supported mixers */
   val format = settings.soundSettings.audioFormat.toJavax
   val bufSize = settings.soundSettings.bufferSize
@@ -132,31 +125,6 @@ class BigBoss(
   val targetMixes = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
   var sourceMixer = sourceMixes(0)
   var targetMixer = targetMixes(0)
-
-  /*
-  var settings1 = new herochat.Settings(
-      herochat.SoundSettings(pcmFmt, bufSize, targetMixer, sourceMixer),
-      Peer(localUser, false, false, false, 1.0),
-      listenPort
-  )
-  var settings = herochat.Settings.defaultSettings
-  settings.addPeer(Peer(User(new UUID(0,1), "hey"), true, true, false, 0.4))
-  settings.addPeer(Peer(User(new UUID(0,2), "wow"), false, true, false, 2.0))
-  log.debug(s"settings: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
-  settings.writeSettingsFile
-  val newSettings = herochat.Settings.readSettingsFile
-  log.debug(s"settings from json: ${newSettings.soundSettings}, ${newSettings.userSettings}, ${newSettings.peerSettings}")
-  */
-  /*
-  import org.json4s._
-  import org.json4s.native.Serialization
-  implicit val formats = DefaultFormats + new herochat.MixerInfoSerializer()
-  log.debug(s"HELLO ${Serialization.write(sourceMixer)}")
-  log.debug(s"HELLO ${Serialization.write(sourceMixer)}")
-  sourceMixes.foreach{mix: Mixer.Info => log.debug(s"source mixers: ${Serialization.write(mix)}")}
-  targetMixes.foreach{mix: Mixer.Info => log.debug(s"target mixers: ${Serialization.write(mix)}")}
-  */
-
 
   //IP address we listen for new connections on
   /* TODO: LATER: support modifying what port we listen on during runtime */
@@ -258,7 +226,7 @@ class BigBoss(
       log.debug(s"BigBoss.Connect checking for valid address: $remoteAddress")
       if (peerTable.preShakeVerify(remoteAddress, listenAddress)) {
         log.debug(s"send connection to $remoteAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, settings.userSettings.user, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, localPeerState.user, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
         peerTable.shakingPeers += ((remoteAddress, peerRef, true, Instant.now))
       } else {
         log.debug(s"$remoteAddress is an invalid connection address")
@@ -273,7 +241,7 @@ class BigBoss(
         socketRef ! Write(ByteString(HcDisconnect.toByteArray))
       } else {
         log.debug(s"Creating Peer actor: $remoteAddress, $localAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, settings.userSettings.user, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, localPeerState.user, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
         socketRef ! Register(peerRef)
         peerTable.shakingPeers += ((remoteAddress, peerRef, false, Instant.now))
       }
@@ -310,7 +278,7 @@ class BigBoss(
           removePreShakePeer(newPeer)
         } else {
           if (newPeer._3) {
-            if (settings.userSettings.user.id.compareTo(remoteUser.id) < 0) {
+            if (localPeerState.user.id.compareTo(remoteUser.id) < 0) {
               log.debug(s"pconf 3: ${oldPeer}, ${newPeer}")
               removePostShakePeer(oldPeer)
               completeHandshake(remoteAddress, peerRef, remoteUser, remotePexAddr)
@@ -319,7 +287,7 @@ class BigBoss(
               removePreShakePeer(newPeer)
             }
           } else if (oldPeer._3) {
-            if (settings.userSettings.user.id.compareTo(remoteUser.id) < 0) {
+            if (localPeerState.user.id.compareTo(remoteUser.id) < 0) {
               log.debug(s"pconf 5: ${oldPeer}, ${newPeer}")
               removePreShakePeer(newPeer)
             } else {
@@ -397,6 +365,16 @@ class BigBoss(
       self ! BigBoss.StopRecord
       updateState(localPeerState.copy(speaking = false))
 
+    /* for now, only support changing local user's nickname */
+    case BigBoss.SetNickname(user, newName) =>
+      if (user == localPeerState.user) {
+        log.debug(s"Changing $user nickname to $newName")
+        //different from other state changes, since it changes primary identifier
+        /* NOTE: User shouldn't be primary identifier, UUID should */
+        val newUser = User(user.id, newName)
+        localPeerState = localPeerState.copy(user = newUser)
+        parent ! ToView(HcView.ChangeNickname(user, newUser))
+      }
     case BigBoss.SetMuteUser(user, setMute) =>
       peerTable.getShookByUser(user) match {
         case Some(remotePeerState) =>
@@ -411,7 +389,7 @@ class BigBoss(
           updateState(localPeerState.copy(muted = setMute))
       }
     case BigBoss.SetDeafenUser(user, setDeafen) =>
-      if (user == settings.userSettings.user) {
+      if (user == localPeerState.user) {
         if (setDeafen) {
           peerTable.shookPeers.foreach(_._2 ! PeerActor.MuteAudio)
         } else {
@@ -433,10 +411,6 @@ class BigBoss(
 
     /* Mixer Options */
     case BigBoss.GetSupportedMixers =>
-      val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
-      val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
-      Thread.currentThread.setContextClassLoader(cl)
-
       val sourceMixers = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
       val targetMixers = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
 
@@ -445,8 +419,6 @@ class BigBoss(
 
       parent ! ToView(HcView.OutputMixers(sourceMixer, sourceMixers))
       parent ! ToView(HcView.InputMixers(targetMixer, targetMixers))
-
-      Thread.currentThread.setContextClassLoader(old_cl)
     case BigBoss.SetInputMixer(mixer) =>
       /* TODO: make sure that if we change mixer in bigboss, it is updated in the GUI */
       log.debug(s"new input mixer recved: $mixer, $targetMixer")
@@ -485,39 +457,13 @@ class BigBoss(
 
 
     case BigBoss.DebugInMixerIndex(index) =>
-      val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
-      val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
-      Thread.currentThread.setContextClassLoader(cl)
-
       val targetMixers = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
       self ! BigBoss.SetInputMixer(targetMixers(index))
       log.debug(s"Changing input mixer to index $index: ${targetMixers(index)}")
-
-      Thread.currentThread.setContextClassLoader(old_cl)
     case BigBoss.DebugOutMixerIndex(index) =>
-      val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
-      val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
-      Thread.currentThread.setContextClassLoader(cl)
-
       val sourceMixers = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
       self ! BigBoss.SetOutputMixer(sourceMixers(index))
       log.debug(s"Changing output mixer to index $index: ${sourceMixers(index)}")
-
-      Thread.currentThread.setContextClassLoader(old_cl)
-
-    /*
-    case BigBoss.DebugPCMFromFile(filename) =>
-      filereader ! AddSubscriber(encoder)
-      filereader ! FileReader.Open(filename)
-    case BigBoss.DebugPCMFromWavFile(filename) =>
-      filereader ! AddSubscriber(encoder)
-      filereader ! FileReader.OpenWav(filename, pcmFmt)
-    case BigBoss.DebugRecordToFile(filename) =>
-      //Record PCM data from javax, write it to a file
-      recorder.foreach(_ ! AddSubscriber(filewriter))
-      filewriter ! FileWriter.Open(filename)
-      self ! BigBoss.StartRecord
-    */
     case _ @ msg => log.debug(s"Bad Msg: $msg")
   }
 }

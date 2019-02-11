@@ -22,7 +22,10 @@ import herochat.SnakeController.ToModel
 
 
 /* how does lobbyPane know which peer is the local peer? */
-class LobbyPane(var pmap: ObservableMap[User, Peer], localUser: User)(implicit val viewActor: ActorRef) {
+class LobbyPane(
+    var pmap: ObservableMap[User, Peer],
+    var localUser: ObjectProperty[User]
+  )(implicit val viewActor: ActorRef) {
   val title = new Text("Lobby") {
     font = Font.font(null, FontWeight.Bold, 12)
     alignmentInParent = Pos.Center
@@ -129,7 +132,7 @@ class LobbyPane(var pmap: ObservableMap[User, Peer], localUser: User)(implicit v
     var menuItems = Buffer[MenuItem]()
 
     menuItems += checkBoxMenuItem("Mute", ((x: Boolean) => ToModel(BigBoss.SetMuteUser(peerState.user, x))))
-    if (peerState.user == localUser) {
+    if (peerState.user == localUser.value) {
       menuItems += checkBoxMenuItem("Deafen", ((x: Boolean) => ToModel(BigBoss.SetDeafenUser(peerState.user, x))))
     } else {
       menuItems += checkBoxMenuItem("Block", ((x: Boolean) => ToModel(BigBoss.SetBlockUser(peerState.user, x))))

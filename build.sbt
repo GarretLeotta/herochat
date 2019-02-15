@@ -1,17 +1,21 @@
 organization := "Garret"
 
-name := "Actor Test"
+name := "Herochat"
 
-version := "1.0"
+version := "0.1.0"
 
 resolvers ++= Seq(
   "sonatype-public" at "https://oss.sonatype.org/content/groups/public",
 )
 
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.5.11",
   "com.typesafe.akka" %% "akka-stream" % "2.5.11",
   "com.typesafe.akka" %% "akka-http" % "10.1.0",
+
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
+
   "org.scodec" %% "scodec-core" % "1.10.3",
   "org.scodec" %% "scodec-bits" % "1.1.5",
   "org.scodec" %% "scodec-stream" % "1.1.0",
@@ -32,4 +36,13 @@ scalacOptions ++= Seq(
 )
 
 mainClass in (Compile, run) := Some("herochat.MVCAkkaTest")
-//mainClass in (Compile, run) := Some("herochat.ATest")
+//mainClass in (Compile, run) := Some("herochat.TLSServerTest")
+//mainClass in (Compile, run) := Some("herochat.TlsClient")
+
+mainClass in (Compile, packageBin) := Some("herochat.Main")
+mainClass in assembly := Some("herochat.Main")
+
+
+
+
+enablePlugins(JavaAppPackaging)

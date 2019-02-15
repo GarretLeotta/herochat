@@ -30,6 +30,10 @@ object Settings {
   val defaultFilename = "settings.json"
   println(s"default filename: ${settingsDir+defaultFilename}")
 
+  if (new File(settingsDir).mkdirs()) {
+    println(s"created Settings directory: $settingsDir")
+  }
+
   def readSettingsFile(filename: Option[String]): Settings = {
     val file = new File(settingsDir + filename.getOrElse(defaultFilename))
     if (file.exists) {

@@ -1,11 +1,22 @@
 SETTINGS FILE
   create a settings file in appdata, (cross-platform)
   create it on startup with defaults
-  write to it when settings change
+  write to it when settings change **NEXT**
+
+ENCRYPTION
+  don't know enough to get this in, how do you end to end encrypt in a p2p network?
+  all ssl certificates are self-signed for convenience..
+  TLS
+  OCB-AES128 for encrypted voice comms
 
 Right now, hard to test that audio is still sent after reconnect.
 When we read an audio file, we read it all really quickly and send.
 Need to make a rate-limited file reader for testing
+
+PROBLEM:
+PlayQueue & Recorder actors pretty much block a thread in the javax write function.
+Does this only happen while playing audio?
+What happens with a lot of inactive peers? -> Inactive PlayQueues
 
 Should BigBoss hold a record of messages received - probably
 Need to think more about how this works, replay and all that
@@ -25,3 +36,10 @@ Enhance file reading/writing features
   support peer joining mid-playback
   support opening multiple files in order
   support opening multiple files at once
+
+
+NOISE REDUCTION
+  RNNoise
+    uses machine learning to reduce noise, supposedly fast
+    available in C under BSD license
+  

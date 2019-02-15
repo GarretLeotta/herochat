@@ -59,6 +59,8 @@ object HcCodec {
 
   val MsgTypeLobbyInfo = 5
 
+  val MsgTypeChangeNickname = 610
+
   val MsgTypeText = 8
 
   val MsgTypeAudio = 9

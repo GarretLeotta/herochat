@@ -27,8 +27,9 @@ class SnakeController(
   import context._
   import SnakeController._
 
+  log.info(s"Starting up now buddy")
   new SFXPanel() // trick: create empty panel to initialize toolkit
-
+  log.info(s"Past this")
   //sbt compatibility - Need to change class loader for javax to work
   val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
   val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader

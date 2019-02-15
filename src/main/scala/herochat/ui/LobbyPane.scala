@@ -135,7 +135,8 @@ class LobbyPane(
     if (peerState.user == localUser.value) {
       menuItems += checkBoxMenuItem("Deafen", ((x: Boolean) => ToModel(BigBoss.SetDeafenUser(peerState.user, x))))
     } else {
-      menuItems += checkBoxMenuItem("Block", ((x: Boolean) => ToModel(BigBoss.SetBlockUser(peerState.user, x))))
+      /* TODO: add block */
+      //menuItems += checkBoxMenuItem("Block", ((x: Boolean) => ToModel(BigBoss.SetBlockUser(peerState.user, x))))
       menuItems += new CustomMenuItem {
         hideOnClick = false
         content = new Slider(0, 2, peerState.volume) {
@@ -148,11 +149,12 @@ class LobbyPane(
         }
       }
     }
-
+    /** TODO: add when authority protocol exists
     menuItems += (
       checkBoxMenuItem("Server Mute (Need Authority Protocol)", ((x: Boolean) => ToModel(BigBoss.SetServerMuteUser(peerState.user, x)))),
       checkBoxMenuItem("Server Deafen (Need Authority Protocol)", ((x: Boolean) => ToModel(BigBoss.SetServerDeafenUser(peerState.user, x)))),
     )
+    */
     new ContextMenu(menuItems:_*)
   }
 

@@ -248,6 +248,11 @@ class PeerActor(
         parent ! BigBoss.Connect(new InetSocketAddress(InetAddress.getByAddress(byteAddr.toArray), port))
       )
   })
+  val nicknameHandler = new HcMessageHandler(0, {
+    case HcMessage(MsgTypeChangeNickname, msgLength, payload) =>
+      //change remoteUSer, peerstate
+      ()
+  })
   /* Handle unrecognized HcMessages, at lowest possible priority */
   val defaultHandler: String => HcMessageHandler = state => new HcMessageHandler(Int.MaxValue, {
     case HcMessage(msgType, msgLength, payload) =>

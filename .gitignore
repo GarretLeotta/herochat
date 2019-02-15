@@ -3,7 +3,9 @@
 # Go ahead :)
 #
 
+
 .ensime_cache
+/certs
 /test_data
 /logs
 

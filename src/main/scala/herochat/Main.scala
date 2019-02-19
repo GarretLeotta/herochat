@@ -23,7 +23,10 @@ object Main extends App {
   val killswitch = system.actorOf(Props(classOf[Killswitch]),  "killswitch")
   import system.dispatcher
 
-  //println("hello in Main")
   /* TODO: configure where settings file is installed */
-  val controller = system.actorOf(SnakeController.props(killswitch, true, None), s"hcController")
+  //val controller = system.actorOf(SnakeController.props(killswitch, true, None), s"hcController")
+  val ipAddr = Tracker.find_public_ip
+  val sockAddr = new InetSocketAddress(ipAddr.get, 41330)
+  println(s"public ip: $ipAddr, $sockAddr, ${Tracker.encode_ip_to_url(sockAddr)}")
+  killswitch ! ShutDown
 }

@@ -8,7 +8,7 @@ import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.{ObservableBuffer, ObservableMap}
-import scalafx.beans.property.ObjectProperty
+import scalafx.beans.property.{ObjectProperty, StringProperty}
 import scalafx.scene.{Scene}
 import scalafx.scene.layout.{BorderPane}
 
@@ -31,6 +31,7 @@ class HcGUI(localUser: User)(implicit val viewActor: ActorRef) extends JFXApp {
 
 
   var localUserProp = ObjectProperty[User](this, "localUser", localUser)
+  var joinLink = new StringProperty(this, "joinLink")
 
   var usersInLobby = ObservableBuffer[Peer]()
   var userMap = ObservableMap[User, Peer]()
@@ -42,8 +43,8 @@ class HcGUI(localUser: User)(implicit val viewActor: ActorRef) extends JFXApp {
     top = new TitlePane().content
     left = new LobbyPane(userMap, localUserProp).content
     center = new ChatPane(messages).content
-    right = new ServerPane(serverList).content
-    bottom = new TestButtonPane(localUserProp).content
+    //right = new ServerPane(serverList).content
+    bottom = new TestButtonPane(localUserProp, joinLink).content
   }
 
   val optionsScene = new OptionsPane(localUserProp)

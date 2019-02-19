@@ -2,7 +2,7 @@ organization := "Garret"
 
 name := "Herochat"
 
-version := "0.1.0"
+version := "DEV-0.1.0"
 
 resolvers ++= Seq(
   "sonatype-public" at "https://oss.sonatype.org/content/groups/public",
@@ -38,6 +38,7 @@ scalacOptions ++= Seq(
 mainClass in (Compile, run) := Some("herochat.MVCAkkaTest")
 //mainClass in (Compile, run) := Some("herochat.TLSServerTest")
 //mainClass in (Compile, run) := Some("herochat.TlsClient")
+//mainClass in (Compile, run) := Some("herochat.Main")
 
 mainClass in (Compile, packageBin) := Some("herochat.Main")
 mainClass in assembly := Some("herochat.Main")

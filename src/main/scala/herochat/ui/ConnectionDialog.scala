@@ -1,11 +1,7 @@
 package herochat.ui
 
 import scalafx.Includes._
-import scalafx.collections.ObservableBuffer
-import scalafx.geometry.{Pos, Insets}
-import scalafx.scene.control._
-import scalafx.scene.control.ButtonBar.ButtonData
-import scalafx.scene.layout.{GridPane, VBox}
+import scalafx.scene.control.TextInputDialog
 
 import javafx.event.ActionEvent
 

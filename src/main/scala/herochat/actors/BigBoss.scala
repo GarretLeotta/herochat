@@ -36,7 +36,7 @@ import herochat.SnakeController.ToView
 import javax.sound.sampled.{DataLine, TargetDataLine, SourceDataLine, AudioSystem, Mixer}
 
 object BigBoss {
-  def props(settings: Settings, record: Boolean): Props = Props(classOf[BigBoss], settings, record)
+  def props(settings: Settings, record: Boolean, settingsFilename: Option[String]): Props = Props(classOf[BigBoss], settings, record, settingsFilename)
 
   //Don't know about this extends thing, probably a bad idea
   //It would be cool if I could make a macro, so didnt have to write etends every time
@@ -87,6 +87,8 @@ object BigBoss {
   case class SetInputMixer(mixer: Mixer.Info)
   case class SetOutputMixer(mixer: Mixer.Info)
 
+  case object GetJoinLink
+
   case class DebugInMixerIndex(index: Int)
   case class DebugOutMixerIndex(index: Int)
   //Log Decoded audio
@@ -110,8 +112,9 @@ object BigBoss {
  * TODO: audio probably playing too fast/slow not sure which, decoding from opus at 48k, playing at 44.1k
  */
 class BigBoss(
-    settings: Settings,
+    var settings: Settings,
     record: Boolean,
+    settingsFilename: Option[String],
   ) extends Actor with ActorLogging {
   import context._
   import Tcp._
@@ -373,6 +376,8 @@ class BigBoss(
         /* NOTE: User shouldn't be primary identifier, UUID should */
         val newUser = User(user.id, newName)
         localPeerState = localPeerState.copy(user = newUser)
+        settings.userSettings = localPeerState
+        settings.writeSettingsFile(settingsFilename)
         parent ! ToView(HcView.ChangeNickname(user, newUser))
       }
     case BigBoss.SetMuteUser(user, setMute) =>
@@ -424,13 +429,25 @@ class BigBoss(
       log.debug(s"new input mixer recved: $mixer, $targetMixer")
       if (mixer != targetMixer) {
         targetMixer = mixer
+        settings.soundSettings = settings.soundSettings.copy(inputMixer = mixer)
+        settings.writeSettingsFile(settingsFilename)
         respawnRecorder()
       }
     case BigBoss.SetOutputMixer(mixer) =>
       log.debug(s"new output mixer recved: $mixer")
       if (mixer != sourceMixer) {
         sourceMixer = mixer
+        settings.soundSettings = settings.soundSettings.copy(outputMixer = mixer)
+        settings.writeSettingsFile(settingsFilename)
         peerTable.shookPeers.foreach( _._2 ! PeerActor.SetMixer(sourceInfo, sourceMixer) )
+      }
+
+    case BigBoss.GetJoinLink =>
+      Tracker.find_public_ip match {
+        case Some(addr) =>
+          val sockAddr = new InetSocketAddress(addr, settings.localPort)
+          parent ! ToView(HcView.JoinLink(Tracker.encode_ip_to_url(sockAddr).get))
+        case None => ()
       }
 
     case BigBoss.ReadFile(filename) =>

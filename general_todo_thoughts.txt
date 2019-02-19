@@ -2,10 +2,12 @@ SETTINGS FILE
   create a settings file in appdata, (cross-platform)
   create it on startup with defaults
   write to it when settings change **NEXT**
+  TODO: do this in a reasonable way, without duplicate code
 
 ENCRYPTION
   don't know enough to get this in, how do you end to end encrypt in a p2p network?
   all ssl certificates are self-signed for convenience..
+  web of trust?
   TLS
   OCB-AES128 for encrypted voice comms
 
@@ -42,4 +44,3 @@ NOISE REDUCTION
   RNNoise
     uses machine learning to reduce noise, supposedly fast
     available in C under BSD license
-  

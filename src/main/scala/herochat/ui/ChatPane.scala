@@ -19,7 +19,7 @@ import herochat.{User, ChatMessage, HcView}
 class ChatPane(var messages: ObservableBuffer[ChatMessage])(implicit val viewActor: ActorRef) {
   def renderChatMessage(msg: ChatMessage) = {
     new TextArea() {
-      text = msg.toString
+      text = msg.sender.nickname + ": " + msg.msg
       alignmentInParent = Pos.CenterLeft
       //wrappingWidth = 500
       editable = false

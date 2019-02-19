@@ -80,8 +80,8 @@ object MVCAkkaTest extends App {
     import java.util.UUID
     val testUser = User(UUID.fromString("86bda808-561b-42cf-9e63-f4c3b43905ef"), "Norbert")
     Vector(
-      (1.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbert"))),
-      //(2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
+      //(1.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbert"))),
+      (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
       //(3.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41332)))),
       (2.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello"))),
       (3.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbie"))),

@@ -46,6 +46,8 @@ object HcView {
 
   case class InputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
   case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
+
+  case class JoinLink(joinLink: String)
 }
 
 /**
@@ -119,8 +121,8 @@ class HcView(localUser: User) extends Actor with ActorLogging {
           log.debug(s"match_ip6: $addr.")
           /* TODO: no port */
         case url_pattern.r(encodedIp) =>
-          log.debug(s"match_url: $encodedIp, ${Tracker.decode_ip_from_url(encodedIp)}")
-          Tracker.decode_ip_from_url(encodedIp).foreach(parent ! BigBoss.Connect(_))
+          log.debug(s"match_url: $encodedIp, ${Tracker.decode_url_to_ip(encodedIp)}")
+          Tracker.decode_url_to_ip(encodedIp).foreach(parent ! BigBoss.Connect(_))
         case _ => log.debug("Got some bullshit")
       }
     case HcView.DisconnectFromLobby =>
@@ -156,6 +158,10 @@ class HcView(localUser: User) extends Actor with ActorLogging {
       Platform.runLater {
         guiInstance.updateOptionsOutputMixers(currentMixer, mixers)
       }
+
+    case HcView.JoinLink(joinLink) => Platform.runLater {
+      guiInstance.joinLink.update(joinLink)
+    }
 
     case ToModel(msg) => parent ! ToModel(msg)
 

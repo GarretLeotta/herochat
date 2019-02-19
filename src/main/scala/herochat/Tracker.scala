@@ -18,7 +18,7 @@ object Tracker {
     NetworkInterface.getNetworkInterfaces().asScala.foreach(interface => {
       if (interface.isUp && !interface.isLoopback) {
         //prefix length 128 only
-          //isLinkLocalAddress == fe80 //verify
+        //isLinkLocalAddress == fe80 //verify
         interface.getInterfaceAddresses.asScala.foreach(addr => {
           if (addr.getNetworkPrefixLength == 128) {
             if (!addr.getAddress.isLinkLocalAddress) {
@@ -50,7 +50,7 @@ object Tracker {
     }
   }
 
-  def decode_ip_from_url(url: String): Option[InetSocketAddress] = {
+  def decode_url_to_ip(url: String): Option[InetSocketAddress] = {
     BitVector.fromBase64(url, base64Alphabet) match {
       case Some(encodedIP) =>
         if (encodedIP.size == 48) {

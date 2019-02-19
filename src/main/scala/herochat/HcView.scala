@@ -17,6 +17,7 @@ import scalafx.event.EventHandler
 import scalafx.scene.input.{KeyEvent, KeyCode}
 
 import java.net.{InetAddress, InetSocketAddress}
+import java.util.UUID
 
 import javax.sound.sampled.{Mixer}
 
@@ -24,7 +25,7 @@ import herochat.actors.{BigBoss}
 import herochat.SnakeController.ToModel
 
 object HcView {
-  def props(localUser: User): Props = Props(classOf[HcView], localUser)
+  def props(localPeer: Peer): Props = Props(classOf[HcView], localPeer)
 
   abstract class HcViewMessage
 
@@ -41,8 +42,7 @@ object HcView {
   /* AddPeer and updateState are currently the same */
   case class AddPeer(peerState: Peer) extends HcViewMessage
   case class UpdatePeerState(newState: Peer) extends HcViewMessage
-  case class RemovePeer(user: User) extends HcViewMessage
-  case class ChangeNickname(oldUser: User, newUser: User) extends HcViewMessage
+  case class RemovePeer(uuid: UUID) extends HcViewMessage
 
   case class InputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
   case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
@@ -54,11 +54,13 @@ object HcView {
  * Propagate changes between model and view
  * TODO: determine when I need to run code in Platform.runLater
  */
-class HcView(localUser: User) extends Actor with ActorLogging {
+class HcView(
+    localPeer: Peer
+  ) extends Actor with ActorLogging {
   import context._
 
   //start JFXApp, explicitly pass self
-  val guiInstance = new HcGUI(localUser)(self)
+  val guiInstance = new HcGUI(localPeer)(self)
   val guiThread = new Thread(new Runnable() {
     override def run(): Unit = {
       log.debug(s"Initializing GUI thread")
@@ -133,19 +135,16 @@ class HcView(localUser: User) extends Actor with ActorLogging {
 
     //Events from Controller
     case PeerState.NewPeer(peerState) => Platform.runLater {
-      guiInstance.userMap += ((peerState.user, peerState))
+      guiInstance.userMap += ((peerState.id, peerState))
     }
     case PeerState.UpdatePeer(peerState) => Platform.runLater {
-      guiInstance.userMap.update(peerState.user, peerState)
+      guiInstance.userMap.update(peerState.id, peerState)
+      if (peerState.id == guiInstance.localPeerProp().id) {
+        guiInstance.localPeerProp.update(peerState)
+      }
     }
     case PeerState.RemovePeer(peerState) => Platform.runLater {
-      guiInstance.userMap -= peerState.user
-    }
-    case HcView.ChangeNickname(oldUser, newUser) => Platform.runLater {
-      val peerState = guiInstance.userMap(oldUser).copy(user = newUser)
-      guiInstance.localUserProp.update(newUser)
-      guiInstance.userMap -= oldUser
-      guiInstance.userMap += ((newUser, peerState))
+      guiInstance.userMap -= peerState.id
     }
 
     case HcView.InputMixers(currentMixer, mixers) =>

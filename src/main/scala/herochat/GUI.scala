@@ -12,13 +12,15 @@ import scalafx.beans.property.{ObjectProperty, StringProperty}
 import scalafx.scene.{Scene}
 import scalafx.scene.layout.{BorderPane}
 
+import java.util.UUID
+
 import javax.sound.sampled.{Mixer}
 
 import herochat.ui._
 
 
-case class ChatMessage(sender: User, msg: String) {
-  override def toString = s"$sender: $msg"
+case class ChatMessage(sender: Peer, msg: String) {
+  override def toString = s"${sender.nickname}: $msg"
 }
 
 //UI stuff hopefully
@@ -26,28 +28,28 @@ case class ChatMessage(sender: User, msg: String) {
  * TODO: in order to set a OS-global hook for PTT keys, need to use JNI.
  * For now, just use buttons
  */
-class HcGUI(localUser: User)(implicit val viewActor: ActorRef) extends JFXApp {
+class HcGUI(localPeer: Peer)(implicit val viewActor: ActorRef) extends JFXApp {
   println(s"gui initialized with view: $viewActor")
 
-
-  var localUserProp = ObjectProperty[User](this, "localUser", localUser)
+  //used to enable/disable certain buttons, modify user settings in options pane
+  var localPeerProp = ObjectProperty[Peer](this, "localPeer", localPeer)
   var joinLink = new StringProperty(this, "joinLink")
 
   var usersInLobby = ObservableBuffer[Peer]()
-  var userMap = ObservableMap[User, Peer]()
-  var serverList = ObservableBuffer[User]()
+  var userMap = ObservableMap[UUID, Peer]()
+  //var serverList = ObservableBuffer[User]()
 
   var messages = ObservableBuffer[ChatMessage]()
 
   val defaultScene = new BorderPane {
     top = new TitlePane().content
-    left = new LobbyPane(userMap, localUserProp).content
+    left = new LobbyPane(userMap, localPeerProp).content
     center = new ChatPane(messages).content
     //right = new ServerPane(serverList).content
-    bottom = new TestButtonPane(localUserProp, joinLink).content
+    bottom = new TestButtonPane(localPeerProp, joinLink).content
   }
 
-  val optionsScene = new OptionsPane(localUserProp)
+  val optionsScene = new OptionsPane(localPeerProp)
 
   val primaryScene = new Scene {
     stylesheets += getClass.getResource("styles.css").toExternalForm

@@ -83,7 +83,7 @@ object Settings {
 
     new Settings(
       SoundSettings(audioFormat, bufferSize, targetMixer, sourceMixer),
-      Peer(User(UUID.randomUUID, "Norbert"), false, false, false, 1.0),
+      Peer(UUID.randomUUID, "Norbert", false, false, false, 1.0),
       localPort = 41330
     )
   }
@@ -99,11 +99,11 @@ class Settings(
     var soundSettings: SoundSettings,
     var userSettings: Peer,
     var localPort: Int,
-    var peerSettings: mutable.Map[User, Peer] = mutable.Map.empty[User, Peer]) {
+    var peerSettings: mutable.Map[UUID, Peer] = mutable.Map.empty[UUID, Peer]) {
   implicit val formats = Settings.formats
 
   def addPeer(peerState: Peer): Unit = {
-    peerSettings(peerState.user) = peerState
+    peerSettings(peerState.id) = peerState
   }
 
   def writeSettingsFile(filename: Option[String]): Unit = {

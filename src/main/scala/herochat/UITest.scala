@@ -66,7 +66,7 @@ object MVCAkkaTest extends App {
     val bigBossT1 = system.actorOf(FakeController.props(killswitch, false, Some("settings.1.json")), "bigbosst1")
     Vector(
       (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
-      (3.0 seconds, bigBossT1, ToModel(BigBoss.SetMuteUser(User(new UUID(0,1), "Mememan"), false))),
+      //(3.0 seconds, bigBossT1, ToModel(BigBoss.SetMuteUser(User(new UUID(0,1), "Mememan"), false))),
       (3.5 seconds, bigBossT1, ToModel(BigBoss.StartSpeaking)),
     ) map {x => scheduleBulkTasks _ tupled x}
   }
@@ -78,13 +78,13 @@ object MVCAkkaTest extends App {
     val bigBossT1 = system.actorOf(FakeController.props(killswitch, false, Some("settings.1.json")), "bigbosst1")
     //val bigBossT2 = system.actorOf(BigBoss.props(41332, User(new UUID(0,2), "Momomonkey"), false), "bigbosst2")
     import java.util.UUID
-    val testUser = User(UUID.fromString("86bda808-561b-42cf-9e63-f4c3b43905ef"), "Norbert")
+    //val testUser = User(UUID.fromString("86bda808-561b-42cf-9e63-f4c3b43905ef"), "Norbert")
     Vector(
       //(1.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbert"))),
       (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
       //(3.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41332)))),
       (2.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello"))),
-      (3.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbie"))),
+      //(3.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbie"))),
       (3.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello again"))),
 
     ) map {x => scheduleBulkTasks _ tupled x}

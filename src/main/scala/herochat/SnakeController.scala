@@ -43,7 +43,7 @@ class SnakeController(
   log.debug(s"settings from json: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
 
   val model = context.actorOf(BigBoss.props(settings, recordAudio, settingsFilename), "bigboss")
-  val view = context.actorOf(HcView.props(settings.userSettings.user), "herochat-view")
+  val view = context.actorOf(HcView.props(settings.userSettings), "herochat-view")
 
   def receive: Receive = {
     case ToView(msg) => view ! msg

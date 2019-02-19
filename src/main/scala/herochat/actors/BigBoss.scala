@@ -30,7 +30,7 @@ import scodec.codecs._
 import za.co.monadic.scopus.{Sf48000}
 
 import herochat.HcCodec._
-import herochat.{Settings, ChatMessage, User, HcView, Tracker, PeerTable, Peer, PeerState, AudioControl, WavCodec, AudioUtils}
+import herochat.{Settings, HcView, Tracker, PeerTable, Peer, PeerState, AudioControl, WavCodec, AudioUtils}
 import herochat.SnakeController.ToView
 
 import javax.sound.sampled.{DataLine, TargetDataLine, SourceDataLine, AudioSystem, Mixer}
@@ -51,10 +51,11 @@ object BigBoss {
 
   //Peer creation messages
   case class IncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, socketRef: ActorRef) extends BigBossMessage
-  case class PeerShook(remoteAddress: InetSocketAddress, remoteUser: User, peerRef: ActorRef, remoteListeningPort: Int) extends BigBossMessage
+  case class PeerShook(remoteAddress: InetSocketAddress, remoteUUID: UUID, peerRef: ActorRef, remoteListeningPort: Int) extends BigBossMessage
 
   //chat commands
   case class Shout(msg: String) extends BigBossMessage
+  case class ReceivedMessage(senderId: UUID, msg: String)
 
   /* TODO: don't need these */
   case object StartRecord extends BigBossMessage
@@ -65,14 +66,13 @@ object BigBoss {
   case object StartSpeaking extends BigBossMessage
   case object StopSpeaking extends BigBossMessage
 
-  /* TODO: should these use User or UUID? */
-  case class SetNickname(user: User, newName: String) extends BigBossMessage
-  case class SetMuteUser(user: User, setMute: Boolean) extends BigBossMessage
-  case class SetDeafenUser(user: User, setDeafen: Boolean) extends BigBossMessage
-  case class SetBlockUser(user: User, setBlock: Boolean) extends BigBossMessage
-  case class SetServerMuteUser(user: User, setMute: Boolean) extends BigBossMessage
-  case class SetServerDeafenUser(user: User, setDeafen: Boolean) extends BigBossMessage
-  case class SetVolumeUser(user: User, vol: Double) extends BigBossMessage
+  case class SetNickname(uuid: UUID, newName: String) extends BigBossMessage
+  case class SetMuteUser(uuid: UUID, setMute: Boolean) extends BigBossMessage
+  case class SetDeafenUser(uuid: UUID, setDeafen: Boolean) extends BigBossMessage
+  case class SetBlockUser(uuid: UUID, setBlock: Boolean) extends BigBossMessage
+  case class SetServerMuteUser(uuid: UUID, setMute: Boolean) extends BigBossMessage
+  case class SetServerDeafenUser(uuid: UUID, setDeafen: Boolean) extends BigBossMessage
+  case class SetVolumeUser(uuid: UUID, vol: Double) extends BigBossMessage
 
   case object CloseFile extends BigBossMessage
   case class ReadFile(filename: String) extends BigBossMessage
@@ -150,6 +150,7 @@ class BigBoss(
 
   def updateState(newPeerState: Peer): Unit = {
     localPeerState = newPeerState
+    settings.userSettings = localPeerState
     parent ! ToView(PeerState.UpdatePeer(newPeerState))
   }
 
@@ -213,12 +214,12 @@ class BigBoss(
     }
 
   }
-  def completeHandshake(remoteAddr: InetSocketAddress, peerRef: ActorRef, remoteUser: User, pexAddr: InetSocketAddress): Unit = {
-    log.debug(s"Completing Handshake for: $remoteAddr, $remoteUser, $peerRef, $pexAddr")
+  def completeHandshake(remoteAddr: InetSocketAddress, peerRef: ActorRef, remoteUUID: UUID, pexAddr: InetSocketAddress): Unit = {
+    log.debug(s"Completing Handshake for: $remoteAddr, $remoteUUID, $peerRef, $pexAddr")
     peerRef ! PeerActor.HandshakeComplete
     peerRef ! PeerActor.SetMixer(sourceInfo, sourceMixer)
     context watch peerRef
-    peerTable.completeShake(remoteAddr, peerRef, remoteUser, pexAddr)
+    peerTable.completeShake(remoteAddr, peerRef, remoteUUID, pexAddr)
     encoder ! AddSubscriber(peerRef)
     sendPexMessage(peerRef)
   }
@@ -229,7 +230,7 @@ class BigBoss(
       log.debug(s"BigBoss.Connect checking for valid address: $remoteAddress")
       if (peerTable.preShakeVerify(remoteAddress, listenAddress)) {
         log.debug(s"send connection to $remoteAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, localPeerState.user, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, localPeerState, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
         peerTable.shakingPeers += ((remoteAddress, peerRef, true, Instant.now))
       } else {
         log.debug(s"$remoteAddress is an invalid connection address")
@@ -244,17 +245,17 @@ class BigBoss(
         socketRef ! Write(ByteString(HcDisconnect.toByteArray))
       } else {
         log.debug(s"Creating Peer actor: $remoteAddress, $localAddress")
-        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, localPeerState.user, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
+        val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, localPeerState, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
         socketRef ! Register(peerRef)
         peerTable.shakingPeers += ((remoteAddress, peerRef, false, Instant.now))
       }
 
     /* TODO: what if we attempt two handshakes to same peer */
-    case BigBoss.PeerShook(remoteAddress, remoteUser, peerRef, remoteListeningPort) =>
+    case BigBoss.PeerShook(remoteAddress, remoteUUID, peerRef, remoteListeningPort) =>
       val remotePexAddr = new InetSocketAddress(remoteAddress.getAddress, remoteListeningPort)
-      log.debug(s"Received shook notice from: $peerRef: $remoteAddress, $remoteUser, $remoteListeningPort")
+      log.debug(s"Received shook notice from: $peerRef: $remoteAddress, $remoteUUID, $remoteListeningPort")
       if (peerTable.postShakeVerify(remoteAddress, remotePexAddr)) {
-        completeHandshake(remoteAddress, peerRef, remoteUser, remotePexAddr)
+        completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddr)
       } else {
         /* TODO: evaluate this logic, simultaneous connections don't generally work, is it worth the
          * complexity to save a few odd scenarios?
@@ -281,22 +282,22 @@ class BigBoss(
           removePreShakePeer(newPeer)
         } else {
           if (newPeer._3) {
-            if (localPeerState.user.id.compareTo(remoteUser.id) < 0) {
+            if (localPeerState.id.compareTo(remoteUUID) < 0) {
               log.debug(s"pconf 3: ${oldPeer}, ${newPeer}")
               removePostShakePeer(oldPeer)
-              completeHandshake(remoteAddress, peerRef, remoteUser, remotePexAddr)
+              completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddr)
             } else {
               log.debug(s"pconf 4: ${oldPeer}, ${newPeer}")
               removePreShakePeer(newPeer)
             }
           } else if (oldPeer._3) {
-            if (localPeerState.user.id.compareTo(remoteUser.id) < 0) {
+            if (localPeerState.id.compareTo(remoteUUID) < 0) {
               log.debug(s"pconf 5: ${oldPeer}, ${newPeer}")
               removePreShakePeer(newPeer)
             } else {
               log.debug(s"pconf 6: ${oldPeer}, ${newPeer}")
               removePostShakePeer(oldPeer)
-              completeHandshake(remoteAddress, peerRef, remoteUser, remotePexAddr)
+              completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddr)
             }
           }
         }
@@ -347,8 +348,7 @@ class BigBoss(
       }
 
     //Received a chat message
-    /* TODO: replace this with meaning */
-    case msg: ChatMessage => parent ! msg
+    case msg: BigBoss.ReceivedMessage => parent ! msg
 
     case BigBoss.StartRecord =>
       log.debug(s"starting record: $sender")
@@ -369,21 +369,18 @@ class BigBoss(
       updateState(localPeerState.copy(speaking = false))
 
     /* for now, only support changing local user's nickname */
-    case BigBoss.SetNickname(user, newName) =>
-      if (user == localPeerState.user) {
-        log.debug(s"Changing $user nickname to $newName")
-        //different from other state changes, since it changes primary identifier
-        /* NOTE: User shouldn't be primary identifier, UUID should */
-        val newUser = User(user.id, newName)
-        localPeerState = localPeerState.copy(user = newUser)
-        settings.userSettings = localPeerState
+    /* TODO: update all peers with new nickname */
+    case BigBoss.SetNickname(uuid, newName) =>
+      if (uuid == localPeerState.id) {
+        log.debug(s"Changing $uuid nickname to $newName")
+        updateState(localPeerState.copy(nickname = newName))
         settings.writeSettingsFile(settingsFilename)
-        parent ! ToView(HcView.ChangeNickname(user, newUser))
+        //parent ! ToView(HcView.ChangeNickname(user, newUser))
       }
-    case BigBoss.SetMuteUser(user, setMute) =>
-      peerTable.getShookByUser(user) match {
+    case BigBoss.SetMuteUser(uuid, setMute) =>
+      peerTable.getShookByUUID(uuid) match {
         case Some(remotePeerState) =>
-          log.debug(s"Setting mute on user: $user to $setMute")
+          log.debug(s"Setting mute on user: $uuid to $setMute")
           if (setMute) {
             remotePeerState._2 ! PeerActor.MuteAudio
           } else {
@@ -393,8 +390,8 @@ class BigBoss(
           log.debug(s"Setting mute on self to $setMute")
           updateState(localPeerState.copy(muted = setMute))
       }
-    case BigBoss.SetDeafenUser(user, setDeafen) =>
-      if (user == localPeerState.user) {
+    case BigBoss.SetDeafenUser(uuid, setDeafen) =>
+      if (uuid == localPeerState.id) {
         if (setDeafen) {
           peerTable.shookPeers.foreach(_._2 ! PeerActor.MuteAudio)
         } else {
@@ -411,8 +408,8 @@ class BigBoss(
       log.debug(s"Unimplemented: Server Deafening User: $user, $setDeafen")
 
     /* Volume control */
-    case BigBoss.SetVolumeUser(user, volume) =>
-      peerTable.getShookByUser(user).foreach(_._2 ! AudioControl.SetVolume(volume))
+    case BigBoss.SetVolumeUser(uuid, volume) =>
+      peerTable.getShookByUUID(uuid).foreach(_._2 ! AudioControl.SetVolume(volume))
 
     /* Mixer Options */
     case BigBoss.GetSupportedMixers =>

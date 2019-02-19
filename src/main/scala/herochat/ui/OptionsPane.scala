@@ -13,14 +13,14 @@ import javafx.event.ActionEvent
 
 import javax.sound.sampled.{Mixer}
 
-import herochat.{User, ChatMessage, HcView}
+import herochat.{Peer, ChatMessage, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
-class OptionsPane(var localUser: ObjectProperty[User])(implicit val viewActor: ActorRef) extends BorderPane {
+class OptionsPane(var localPeer: ObjectProperty[Peer])(implicit val viewActor: ActorRef) extends BorderPane {
 
   val audioTab = new OptionsAudioPane()
-  val userTab = new OptionsUserPane(localUser)
+  val userTab = new OptionsUserPane(localPeer)
 
   var selectedTab =  ObjectProperty[Pane](this, "selectedTab", userTab)
   /* How to Order the tabs?? */

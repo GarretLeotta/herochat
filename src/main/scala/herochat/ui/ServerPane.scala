@@ -10,9 +10,9 @@ import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.{VBox, FlowPane}
 import scalafx.scene.text.{Font, FontWeight, Text}
 
-import herochat.User
+import herochat.Peer
 
-class ServerPane(var users: ObservableBuffer[User])(implicit val viewActor: ActorRef) {
+class ServerPane(var users: ObservableBuffer[Peer])(implicit val viewActor: ActorRef) {
   val title = new Text("\"Server\"") {
     font = Font.font(null, FontWeight.Bold, 12)
     alignmentInParent = Pos.Center
@@ -23,11 +23,11 @@ class ServerPane(var users: ObservableBuffer[User])(implicit val viewActor: Acto
     prefWidth = 250
     prefHeight = 550
 
-    children = new ListView[User] {
+    children = new ListView[Peer] {
       items = users
 
       cellFactory = { p =>
-        new ListCell[User] {
+        new ListCell[Peer] {
           item.onChange { (obsVal, oldVal, newVal) => {
             Option(newVal) match {
               case Some(user) => text = newVal.toString

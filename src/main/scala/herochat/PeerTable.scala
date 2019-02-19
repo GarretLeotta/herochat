@@ -8,16 +8,17 @@ import akka.actor.{ActorRef}
 
 import java.net.{InetSocketAddress}
 import java.time.{Instant}
+import java.util.UUID
 
 object PeerTable {
   /* RemoteAddress, ActorRef, IsLocalInit, TimeStarted
    * PK: ActorRef
    */
   type PreShakePeer = Tuple4[InetSocketAddress, ActorRef, Boolean, Instant]
-  /* RemoteAddress, ActorRef, IsLocalInit, TimeStarted, RemoteUser, RemotePexAddress
-   * Unique identifiers: ActorRef, RemoteUser
+  /* RemoteAddress, ActorRef, IsLocalInit, TimeStarted, remoteUUID, RemotePexAddress
+   * Unique identifiers: ActorRef, remoteUUID
    */
-  type PostShakePeer = Tuple6[InetSocketAddress, ActorRef, Boolean, Instant, User, InetSocketAddress]
+  type PostShakePeer = Tuple6[InetSocketAddress, ActorRef, Boolean, Instant, UUID, InetSocketAddress]
 }
 
 /**
@@ -56,8 +57,8 @@ class PeerTable(bigboss: ActorRef) {
   def getShookByPexAddr(remotePexAddr: InetSocketAddress): Option[PostShakePeer] = {
     shookPeers.filter(tup => tup._6 == remotePexAddr).toVector.lift(0)
   }
-  def getShookByUser(remoteUser: User): Option[PostShakePeer] = {
-    shookPeers.filter(tup => tup._5 == remoteUser).toVector.lift(0)
+  def getShookByUUID(remoteUUID: UUID): Option[PostShakePeer] = {
+    shookPeers.filter(tup => tup._5 == remoteUUID).toVector.lift(0)
   }
 
   /* requested remote address should not be in any peer lists (pex or actual) and should not equal
@@ -90,9 +91,9 @@ class PeerTable(bigboss: ActorRef) {
 
   /*
    */
-  def completeShake(remoteAddr: InetSocketAddress, peerRef: ActorRef, user: User, pexAddr: InetSocketAddress): Unit = {
+  def completeShake(remoteAddr: InetSocketAddress, peerRef: ActorRef, uuid: UUID, pexAddr: InetSocketAddress): Unit = {
     val (a,b,c,d) = shakingPeers.filter(tup => tup._1 == remoteAddr && tup._2 == peerRef).toVector(0)
     shakingPeers -= ((a,b,c,d))
-    shookPeers += ((a, b, c, d, user, pexAddr))
+    shookPeers += ((a, b, c, d, uuid, pexAddr))
   }
 }

@@ -21,12 +21,12 @@ import scodec._
 import scodec.bits._
 import scodec.codecs._
 
-import herochat.{ChatMessage, User, AuthPayload, Peer, PeerState, AudioEncoding, AudioData, AudioControl}
+import herochat.{AuthPayload, Peer, PeerState, AudioEncoding, AudioData, AudioControl}
 import herochat.HcCodec._
 
 
 object PeerActor {
-  def props(remoteAddress: InetSocketAddress, socket: ActorRef, initialState: PeerActor.InitialState, localUser: User, localAddress: InetSocketAddress): Props = Props(classOf[PeerActor], remoteAddress, socket, initialState, localUser, localAddress)
+  def props(remoteAddress: InetSocketAddress, socket: ActorRef, initialState: PeerActor.InitialState, localPeer: Peer, localAddress: InetSocketAddress): Props = Props(classOf[PeerActor], remoteAddress, socket, initialState, localPeer, localAddress)
   case object Disconnect
   case object PlayAudio
   case object MuteAudio
@@ -47,12 +47,15 @@ object PeerActor {
   type HcMessageHandler = OrderedPartialFunction[HcMessage, Unit]
 }
 
+
+
 class PeerActor(
     val remoteAddress: InetSocketAddress,
     private var socket: ActorRef,
     initialState: PeerActor.InitialState,
-    localUser: User,
-    localAddress: InetSocketAddress) extends Actor with ActorLogging {
+    var localPeer: Peer,
+    localAddress: InetSocketAddress,
+  ) extends Actor with ActorLogging {
   import context._
   import Tcp._
   import PeerActor._
@@ -60,7 +63,7 @@ class PeerActor(
   val localPort: Int = localAddress.getPort
   /* These variables are assigned when handshake is complete */
   /* TODO: would be better defining these in a closure, or at least using Option */
-  var remoteUser: User = null
+  //var remoteUser: User = null
   var remoteListeningPort: Int = -1
   //state is None before handshake is complete
   var peerState: Option[Peer] = None
@@ -140,9 +143,8 @@ class PeerActor(
     val mapForm = AuthPayload.toMap(payload)
     val id = mapForm(AuthPayload.tUUID).right.get.asInstanceOf[AuthPayload.AuthTypeUUID].uuid
     val name = mapForm(AuthPayload.tNickname).right.get.asInstanceOf[AuthPayload.AuthTypeNickname].nickname
-    remoteUser = User(id, name)
     remoteListeningPort = mapForm(AuthPayload.tPort).right.get.asInstanceOf[AuthPayload.AuthTypePort].port
-    peerState = Some(Peer(remoteUser, false, false, false, 1.0))
+    peerState = Some(Peer(id, name, false, false, false, 1.0))
   }
 
   /* Handlers for herochat protocol messages related to handshake procedure */
@@ -159,11 +161,11 @@ class PeerActor(
       val decPayload = AuthPayload.vecCodec.decode(payload.bits).require.value
       parseAuthPayload(decPayload)
       log.debug(s"Received Handshake auth message: $decPayload, sending response")
-      val authPayload = HCAuthMessage(localUser.id, localUser.nickname, localPort)
+      val authPayload = HCAuthMessage(localPeer.id, localPeer.nickname, localPort)
       socket ! Write(ByteString(Codec.encode(authPayload).require.toByteArray))
       //Peer does not complete handshake until it receives signoff from BigBoss
       //handles a race condition where two peers connect to eachother at nearly the same time
-      parent ! BigBoss.PeerShook(remoteAddress, remoteUser, self, remoteListeningPort)
+      parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
   })
   /* Wait for auth message from remote host; handshake is complete when received*/
   val handshakeReceiveAuthHandler = new HcMessageHandler(0, {
@@ -171,7 +173,7 @@ class PeerActor(
       val decPayload = AuthPayload.vecCodec.decode(payload.bits).require.value
       parseAuthPayload(decPayload)
       log.debug(s"Received Handshake auth message: $decPayload, handshake complete")
-      parent ! BigBoss.PeerShook(remoteAddress, remoteUser, self, remoteListeningPort)
+      parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
   })
 
   /* Handshake State, performing handhsake with other peer
@@ -186,7 +188,7 @@ class PeerActor(
       log.debug(s"Received Connection response: $remoteAddress, $localAddress")
       sender ! Register(self)
       socket = sender
-      val auth_load = HCAuthMessage(localUser.id, localUser.nickname, localPort)
+      val auth_load = HCAuthMessage(localPeer.id, localPeer.nickname, localPort)
       become(handshakeReceive)
       socket ! Write(ByteString(Codec.encode(auth_load).require.toByteArray))
     case CommandFailed(_: Connect) =>
@@ -220,7 +222,7 @@ class PeerActor(
     case HcMessage(MsgTypeText, msgLength, payload) =>
       val decoded = utf8.decode(payload.bits).require.value
       log.debug(s"Received HcText message: ${decoded}")
-      parent ! ChatMessage(remoteUser, decoded)
+      parent ! BigBoss.ReceivedMessage(peerState.get.id, decoded)
   })
   /* These aren't really play/mute, they are more like forwarding encoded audio or ignoring it.
    * forward is a bad name, need to come up with better terminology

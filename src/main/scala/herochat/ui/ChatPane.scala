@@ -13,13 +13,13 @@ import scalafx.scene.layout.{BorderPane, FlowPane, VBox}
 import scalafx.scene.text.{Font, FontWeight, Text}
 
 
-import herochat.{User, ChatMessage, HcView}
+import herochat.{ChatMessage, HcView}
 
 
 class ChatPane(var messages: ObservableBuffer[ChatMessage])(implicit val viewActor: ActorRef) {
   def renderChatMessage(msg: ChatMessage) = {
     new TextArea() {
-      text = msg.sender.nickname + ": " + msg.msg
+      text = msg.toString
       alignmentInParent = Pos.CenterLeft
       //wrappingWidth = 500
       editable = false

@@ -33,11 +33,11 @@ class PeerStateSerializer extends CustomSerializer[Peer] (implicit format => ( {
     val muted = (jsonObj \ "muted").extract[Boolean]
     val deafened = (jsonObj \ "deafened").extract[Boolean]
     val volume = (jsonObj \ "volume").extract[Double]
-    Peer(User(id, name), muted, deafened, false, volume)
+    Peer(id, name, muted, deafened, false, volume)
 }, {
   case peerState: Peer => JObject(
-    JField("id", JString(peerState.user.id.toString)),
-    JField("name", JString(peerState.user.nickname)),
+    JField("id", JString(peerState.id.toString)),
+    JField("name", JString(peerState.nickname)),
     JField("muted", JBool(peerState.muted)),
     JField("deafened", JBool(peerState.deafened)),
     JField("volume", JDouble(peerState.volume))
@@ -62,9 +62,9 @@ class SettingsSerializer extends CustomSerializer[Settings] (implicit format => 
     val userSettings = (jsonObj \ "userSettings").extract[Peer]
     val localPort = (jsonObj \ "localPort").extract[Int]
     /* Jesus Christ.. */
-    val peerSettings: mutable.Map[User, Peer] = (jsonObj \ "peerSettings").extract[JArray]
-      .children.map(_.extract[Peer]).foldLeft(mutable.Map[User, Peer]()) { (map, peer) =>
-        map + (peer.user -> peer)
+    val peerSettings: mutable.Map[UUID, Peer] = (jsonObj \ "peerSettings").extract[JArray]
+      .children.map(_.extract[Peer]).foldLeft(mutable.Map[UUID, Peer]()) { (map, peer) =>
+        map + (peer.id -> peer)
       }
     new Settings(soundSettings, userSettings, localPort, peerSettings)
 }, {

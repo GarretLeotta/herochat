@@ -16,12 +16,12 @@ import scalafx.stage.Stage
 import javafx.event.ActionEvent
 
 
-import herochat.{User, ChatMessage, HcView}
+import herochat.{Peer, ChatMessage, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
 class TestButtonPane(
-    var localUser: ObjectProperty[User],
+    var localPeer: ObjectProperty[Peer],
     var joinLink: StringProperty
   )(implicit val viewActor: ActorRef) {
   def msgButton(text: String, msg: Any) = {
@@ -90,8 +90,8 @@ class TestButtonPane(
       inviteButton,
       connButton,
       msgButton("Disconnect", HcView.DisconnectFromLobby),
-      msgButton("Mute", ToModel(BigBoss.SetMuteUser(localUser.value, true))),
-      msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localUser.value, false))),
+      msgButton("Mute", ToModel(BigBoss.SetMuteUser(localPeer().id, true))),
+      msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localPeer().id, false))),
       msgButton("Speak", ToModel(BigBoss.StartSpeaking)),
       msgButton("Don't speak", ToModel(BigBoss.StopSpeaking)),
     )

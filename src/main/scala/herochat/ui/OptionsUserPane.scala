@@ -16,11 +16,11 @@ import javafx.event.ActionEvent
 
 import javax.sound.sampled.{Mixer}
 
-import herochat.{User, ChatMessage, HcView}
+import herochat.{Peer, ChatMessage, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
-class OptionsUserPane(var localUser: ObjectProperty[User])(implicit val viewActor: ActorRef) extends VBox {
+class OptionsUserPane(var localPeer: ObjectProperty[Peer])(implicit val viewActor: ActorRef) extends VBox {
   //style = "-fx-background-color: lightgreen"
   spacing = 10
   padding = Insets(20)
@@ -39,13 +39,13 @@ class OptionsUserPane(var localUser: ObjectProperty[User])(implicit val viewActo
   )
 
   def nicknameForm(): Array[Node] = {
-    val previewText = new Text(localUser.value.nickname)
-    localUser.onChange((obsVal, oldVal, newVal) => previewText.text = newVal.nickname)
+    val previewText = new Text(localPeer().nickname)
+    localPeer.onChange((obsVal, oldVal, newVal) => previewText.text = newVal.nickname)
     val textField = new TextField {
       promptText = "Change Nickname"
       onAction = _ => {
-        if (this.text.value.length > 0 && this.text.value.length <= 20) {
-          viewActor ! ToModel(BigBoss.SetNickname(localUser.value, this.text.value))
+        if (this.text().length > 0 && this.text().length <= 20) {
+          viewActor ! ToModel(BigBoss.SetNickname(localPeer().id, this.text()))
         }
       }
     }

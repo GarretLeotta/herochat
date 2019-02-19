@@ -15,16 +15,17 @@ import scalafx.scene.text.{Font, FontWeight, Text}
 import scalafx.scene.image.{Image, ImageView}
 
 import javafx.event.ActionEvent
+import java.util.UUID
 
-import herochat.{User, HcView, Peer}
+import herochat.{HcView, Peer}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
 
 /* how does lobbyPane know which peer is the local peer? */
 class LobbyPane(
-    var pmap: ObservableMap[User, Peer],
-    var localUser: ObjectProperty[User]
+    var pmap: ObservableMap[UUID, Peer],
+    var localPeer: ObjectProperty[Peer]
   )(implicit val viewActor: ActorRef) {
   val title = new Text("Lobby") {
     font = Font.font(null, FontWeight.Bold, 12)
@@ -37,7 +38,7 @@ class LobbyPane(
     true -> new Image(getClass.getClassLoader.getResourceAsStream("images/mic_red.png")),
   )
 
-  var peer_positions = scala.collection.mutable.Map[User, Int]()
+  var peer_positions = scala.collection.mutable.Map[UUID, Int]()
 
   val lobby_list = new VBox {
     children = ObservableBuffer[HBox]()
@@ -65,7 +66,7 @@ class LobbyPane(
   }}
 
   def customPeerString(peerState: Peer): String = {
-    peerState.user.nickname + "; " +
+    peerState.nickname + "; " +
     peerState.muted + "; " +
     peerState.deafened + "; " +
     peerState.volume
@@ -119,7 +120,7 @@ class LobbyPane(
           new Text(label),
           new CheckBox {
             onAction = (event: ActionEvent) => {
-              viewActor ! msgFunc(this.selected.value)
+              viewActor ! msgFunc(this.selected())
             }
           },
         )
@@ -131,9 +132,9 @@ class LobbyPane(
   def createUserContextMenu(peerState: Peer): ContextMenu = {
     var menuItems = Buffer[MenuItem]()
 
-    menuItems += checkBoxMenuItem("Mute", ((x: Boolean) => ToModel(BigBoss.SetMuteUser(peerState.user, x))))
-    if (peerState.user == localUser.value) {
-      menuItems += checkBoxMenuItem("Deafen", ((x: Boolean) => ToModel(BigBoss.SetDeafenUser(peerState.user, x))))
+    menuItems += checkBoxMenuItem("Mute", ((x: Boolean) => ToModel(BigBoss.SetMuteUser(peerState.id, x))))
+    if (peerState.id == localPeer().id) {
+      menuItems += checkBoxMenuItem("Deafen", ((x: Boolean) => ToModel(BigBoss.SetDeafenUser(peerState.id, x))))
     } else {
       /* TODO: add block */
       //menuItems += checkBoxMenuItem("Block", ((x: Boolean) => ToModel(BigBoss.SetBlockUser(peerState.user, x))))
@@ -144,7 +145,7 @@ class LobbyPane(
           snapToTicks = true
           value.onChange { (obsVal, oldVal, newVal) => {
             //println(s"slider value changed: $newVal")
-            viewActor ! ToModel(BigBoss.SetVolumeUser(peerState.user, newVal.doubleValue))
+            viewActor ! ToModel(BigBoss.SetVolumeUser(peerState.id, newVal.doubleValue))
           }}
         }
       }

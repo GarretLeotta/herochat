@@ -1,3 +1,14 @@
+PTT:
+Starts transmitting before i press the button. I guess it clears the buffer out, so when I hit PTT
+I hear half a second of audio from before I hit the button, including the mouse button clicking.
+UPDATE: calling line.flush() right before startRecord, mostly mitigates the issue
+
+
+PLAYBACK:
+There's still a bug where player will playback a tiny part of buffer over and over again.
+--Might be reproducible by spam clicking PTT?
+
+
 SETTINGS FILE
   create a settings file in appdata, (cross-platform)
   create it on startup with defaults

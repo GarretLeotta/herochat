@@ -56,7 +56,7 @@ object Settings {
   def defaultSettings(): Settings = {
     /**
      * input args: audio encoding, sample rate, sampleSizeInBits, channels, frame size, frame rate, big endian,
-     * bufferSize, audio device name, output actorm
+     * bufferSize, audio device name, output actor
      */
     val encoding = AudioFormat.Encoding.PCM_SIGNED
     val sampleRate = 44100

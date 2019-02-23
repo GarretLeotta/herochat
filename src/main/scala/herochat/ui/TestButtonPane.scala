@@ -20,6 +20,8 @@ import herochat.{Peer, ChatMessage, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
+import ghook.GlobalHook
+
 class TestButtonPane(
     var localPeer: ObjectProperty[Peer],
     var joinLink: StringProperty
@@ -30,6 +32,19 @@ class TestButtonPane(
         viewActor ! msg
       }
     }
+  }
+
+  /* This definitely doesn't belong here */
+  val globalHook = new GlobalHook(
+    () => viewActor ! ToModel(BigBoss.StartSpeaking),
+    () => viewActor ! ToModel(BigBoss.StopSpeaking)
+  )
+
+  val regButton = new Button("Register Hook") {
+    onAction = _ => println(s"Registering hook: ${globalHook.registerKeyboardHook()}")
+  }
+  val deregButton = new Button("Deregister Hook") {
+    onAction = _ => println(s"Deregistering hook: ${globalHook.deregisterKeyboardHook()}")
   }
 
   /* check if user inputted a URL or an IP
@@ -94,6 +109,8 @@ class TestButtonPane(
       msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localPeer().id, false))),
       msgButton("Speak", ToModel(BigBoss.StartSpeaking)),
       msgButton("Don't speak", ToModel(BigBoss.StopSpeaking)),
+      regButton,
+      deregButton,
     )
     buttonOrder = "U+"
     padding = Insets(5)

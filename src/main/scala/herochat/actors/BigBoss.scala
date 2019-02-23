@@ -57,10 +57,6 @@ object BigBoss {
   case class Shout(msg: String) extends BigBossMessage
   case class ReceivedMessage(senderId: UUID, msg: String)
 
-  /* TODO: don't need these */
-  case object StartRecord extends BigBossMessage
-  case object StopRecord extends BigBossMessage
-
   /* StartSpeaking & StopSpeaking change whether audio data is recorded and sent through pipeline.
    * Mute & UnMute disable & enable, respectively, StartSpeaking */
   case object StartSpeaking extends BigBossMessage
@@ -194,9 +190,21 @@ class BigBoss(
     /* TODO: this should be conditional */
     recorder.foreach(_ ! AddSubscriber(filewriter))
     if (localPeerState.speaking) {
-      self ! BigBoss.StartRecord
+      startRecord()
     }
     recI += 1
+  }
+
+  def startRecord(): Unit = {
+    log.debug(s"starting record: $sender")
+    recorder.foreach(_ ! Recorder.Record)
+    updateState(localPeerState.copy(speaking = true))
+  }
+
+  def stopRecord(): Unit = {
+    recorder.foreach(_ ! Recorder.Pause)
+    log.debug(s"pausing record: $sender")
+    updateState(localPeerState.copy(speaking = false))
   }
 
 
@@ -350,23 +358,14 @@ class BigBoss(
     //Received a chat message
     case msg: BigBoss.ReceivedMessage => parent ! msg
 
-    case BigBoss.StartRecord =>
-      log.debug(s"starting record: $sender")
-      recorder.foreach(_ ! Recorder.Record)
-    case BigBoss.StopRecord =>
-      recorder.foreach(_ ! Recorder.Pause)
-      log.debug(s"pausing record: $sender")
-
     case BigBoss.StartSpeaking if !localPeerState.muted =>
       /* TODO: this is conditional based on logging */
       /* TODO: filename based on name */
       //filewriter ! FileWriter.OpenWav("test_data/output_test.wav", pcmFmt)
+      startRecord()
 
-      self ! BigBoss.StartRecord
-      updateState(localPeerState.copy(speaking = true))
     case BigBoss.StopSpeaking if !localPeerState.muted =>
-      self ! BigBoss.StopRecord
-      updateState(localPeerState.copy(speaking = false))
+      stopRecord()
 
     /* for now, only support changing local user's nickname */
     /* TODO: update all peers with new nickname */

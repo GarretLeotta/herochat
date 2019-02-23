@@ -69,17 +69,27 @@ class Recorder(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor wit
       subscribers -= sub
   }
 
-  /* This is a blocking call, meaning that any pause commands will have a delay of at most bufSize[Seconds] */
+  /* targetLine.read is a blocking call, meaning that any pause commands will have a delay of at most bufSize[Seconds]
+   * This caused a bug, spam-clicking PTT would build up a large delay before all the commands were read.
+   */
   def recordAndSend(lastSegment: Boolean): Unit = {
-    val bytesRead = targetLine.read(buf, 0, buf.length)
-    subscribers.foreach( sub =>
-      sub ! AudioData(AudioEncoding.Pcm, lastSegment, ByteVector(buf.slice(0, bytesRead+1)))
-    )
+    /* NOTE: large buffer sizes can cause "cutoff" - Once I let go of PTT, the last bufferSize seconds
+     * of audio won't reach destination.
+     */
+    if (targetLine.available == buf.length) {
+      val bytesRead = targetLine.read(buf, 0, buf.length)
+      subscribers.foreach( sub =>
+        sub ! AudioData(AudioEncoding.Pcm, lastSegment, ByteVector(buf.slice(0, bytesRead+1)))
+      )
+    }
   }
 
   def inactive: Receive = baseHandler orElse {
     case Recorder.Record =>
       log.debug(s"RECORD")
+      //There's data sitting in the buffer from before user sent the Record command, flush it.
+      /* NOTE: is it better to start/stop the line? what are performance implications? */
+      targetLine.flush()
       become(active)
       self ! Recorder.Next
     case Recorder.Next =>

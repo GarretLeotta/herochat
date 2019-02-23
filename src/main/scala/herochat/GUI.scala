@@ -10,6 +10,7 @@ import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.{ObservableBuffer, ObservableMap}
 import scalafx.beans.property.{ObjectProperty, StringProperty}
 import scalafx.scene.{Scene}
+import scalafx.scene.input.{MouseButton, MouseEvent, KeyEvent}
 import scalafx.scene.layout.{BorderPane}
 
 import java.util.UUID
@@ -17,7 +18,6 @@ import java.util.UUID
 import javax.sound.sampled.{Mixer}
 
 import herochat.ui._
-
 
 case class ChatMessage(sender: Peer, msg: String) {
   override def toString = s"${sender.nickname}: $msg"
@@ -54,6 +54,8 @@ class HcGUI(localPeer: Peer)(implicit val viewActor: ActorRef) extends JFXApp {
   val primaryScene = new Scene {
     stylesheets += getClass.getResource("styles.css").toExternalForm
     root = defaultScene
+    onMousePressed = { me: MouseEvent => println(s"MouseEvent: $me") }
+    onKeyPressed = { ke: KeyEvent => println(s"KeyEvent: $ke") }
   }
 
   stage = new PrimaryStage {

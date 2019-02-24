@@ -1,5 +1,7 @@
 package herochat
 
+import scala.language.postfixOps
+import scala.concurrent.duration._
 import scala.collection.mutable
 
 import org.json4s._
@@ -11,6 +13,8 @@ import java.util.UUID
 /* TODO: should this audio stuff be in another file??? */
 import javax.sound.sampled.{AudioFormat, AudioSystem, Mixer, DataLine, SourceDataLine, TargetDataLine}
 
+
+
 case class SoundSettings(
     audioFormat: WavCodec.PcmFormat,
     bufferSize: Int,
@@ -18,11 +22,25 @@ case class SoundSettings(
     outputMixer: Mixer.Info)
 
 object Settings {
+  /* TODO: use this in herochat and ghook, thats probably not good */
+  sealed trait InputDevice
+  case object Keyboard extends InputDevice
+  case object Mouse extends InputDevice
+  def hidFromString(str: String): InputDevice = {
+    str match {
+      case "Keyboard" => Keyboard
+      case "Mouse" => Mouse
+    }
+  }
+  /* TODO: don't use Int for keycodes :) */
+  case class KeyBinding(hid: InputDevice, keyCode: Int)
+
   implicit val formats = DefaultFormats ++ List(
     new MixerInfoSerializer(),
     new AudioFormatSerializer(),
     new PeerStateSerializer(),
     new SettingsSerializer(),
+    new InputDeviceSerializer,
   )
 
   /* TODO: cross platform */
@@ -84,7 +102,8 @@ object Settings {
     new Settings(
       SoundSettings(audioFormat, bufferSize, targetMixer, sourceMixer),
       Peer(UUID.randomUUID, "Norbert", false, false, false, 1.0),
-      localPort = 41330
+      localPort = 41330,
+      20 milliseconds,
     )
   }
 }
@@ -94,16 +113,24 @@ object Settings {
  * Includes: Mixers, Line Format, preferred buffer size,
  * Local User information, Local listening Port, Last saved peer information,
  * TODO: Snakecontroller should initialize Settings object, but what about instances without UI
+ * TODO: what to do if settings file is invalid
  */
 class Settings(
     var soundSettings: SoundSettings,
     var userSettings: Peer,
     var localPort: Int,
-    var peerSettings: mutable.Map[UUID, Peer] = mutable.Map.empty[UUID, Peer]) {
+    var pttDelayInMilliseconds: FiniteDuration,
+    var peerSettings: mutable.Map[UUID, Peer] = mutable.Map.empty,
+    var shortcuts: mutable.Map[String, Settings.KeyBinding] = mutable.Map.empty,
+  ) {
   implicit val formats = Settings.formats
 
   def addPeer(peerState: Peer): Unit = {
     peerSettings(peerState.id) = peerState
+  }
+
+  def updateShortcut(action: String, binding: Settings.KeyBinding): Unit = {
+    shortcuts(action) = binding
   }
 
   def writeSettingsFile(filename: Option[String]): Unit = {

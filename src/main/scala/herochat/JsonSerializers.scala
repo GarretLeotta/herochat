@@ -1,5 +1,7 @@
 package herochat
 
+import scala.language.postfixOps
+import scala.concurrent.duration._
 import scala.collection.mutable
 
 import org.json4s._
@@ -54,6 +56,18 @@ class AudioFormatSerializer extends CustomSerializer[AudioFormat.Encoding] (impl
 }
 ))
 
+class InputDeviceSerializer extends CustomSerializer[Settings.KeyBinding] (implicit format => ( {
+  case jsonArr: JArray =>
+    val hidString = jsonArr(0).extract[String]
+    val keyCode = jsonArr(1).extract[Int]
+    Settings.KeyBinding(Settings.hidFromString(hidString), keyCode)
+}, {
+  case binding: Settings.KeyBinding => JArray(List(
+    JString(binding.hid.toString),
+    JInt(binding.keyCode),
+  ))
+}
+))
 
 /* TODO: Don't think JString(Serialization.write(x)) is the right way to do this */
 class SettingsSerializer extends CustomSerializer[Settings] (implicit format => ( {
@@ -61,18 +75,22 @@ class SettingsSerializer extends CustomSerializer[Settings] (implicit format => 
     val soundSettings = (jsonObj \ "soundSettings").extract[SoundSettings]
     val userSettings = (jsonObj \ "userSettings").extract[Peer]
     val localPort = (jsonObj \ "localPort").extract[Int]
+    val pttDelay = (jsonObj \ "pttDelayInMilliseconds").extract[Int] milliseconds
     /* Jesus Christ.. */
     val peerSettings: mutable.Map[UUID, Peer] = (jsonObj \ "peerSettings").extract[JArray]
       .children.map(_.extract[Peer]).foldLeft(mutable.Map[UUID, Peer]()) { (map, peer) =>
         map + (peer.id -> peer)
       }
-    new Settings(soundSettings, userSettings, localPort, peerSettings)
+    val shortcuts = (jsonObj \ "shortcuts").extract[mutable.Map[String, Settings.KeyBinding]]
+    new Settings(soundSettings, userSettings, localPort, pttDelay, peerSettings, shortcuts)
 }, {
   case settings: Settings => JObject(
     JField("soundSettings", Extraction.decompose(settings.soundSettings)),
     JField("localPort", Extraction.decompose(settings.localPort)),
     JField("userSettings", Extraction.decompose(settings.userSettings)),
     JField("peerSettings", Extraction.decompose(settings.peerSettings.values)),
+    JField("pttDelayInMilliseconds", Extraction.decompose(settings.pttDelayInMilliseconds.length)),
+    JField("shortcuts", Extraction.decompose(settings.shortcuts)),
   )
 }
 ))

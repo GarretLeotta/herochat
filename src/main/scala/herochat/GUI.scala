@@ -54,8 +54,6 @@ class HcGUI(localPeer: Peer)(implicit val viewActor: ActorRef) extends JFXApp {
   val primaryScene = new Scene {
     stylesheets += getClass.getResource("styles.css").toExternalForm
     root = defaultScene
-    onMousePressed = { me: MouseEvent => println(s"MouseEvent: $me") }
-    onKeyPressed = { ke: KeyEvent => println(s"KeyEvent: $ke") }
   }
 
   stage = new PrimaryStage {

@@ -21,12 +21,14 @@ class OptionsPane(var localPeer: ObjectProperty[Peer])(implicit val viewActor: A
 
   val audioTab = new OptionsAudioPane()
   val userTab = new OptionsUserPane(localPeer)
+  val shortcutTab = new OptionsShortcutPane()
 
   var selectedTab =  ObjectProperty[Pane](this, "selectedTab", userTab)
-  /* How to Order the tabs?? */
-  var activeTabs = ObservableMap[String, Pane](
-    "Audio" -> audioTab,
-    "User" -> userTab,
+  var activeTabs = new ObservableBuffer[Tuple2[String, Pane]]()
+  activeTabs.append(
+    ("User", userTab),
+    ("Audio", audioTab),
+    ("Shortcuts", shortcutTab),
   )
 
 
@@ -60,6 +62,7 @@ class OptionsExitPane()(implicit val viewActor: ActorRef) {
       new Button("Exit") {
         onAction = (event: ActionEvent) =>  {
           viewActor ! HcView.ShowDefault
+          viewActor ! ToModel(BigBoss.SaveSettings)
         }
       }
     )

@@ -34,19 +34,6 @@ class TestButtonPane(
     }
   }
 
-  /* This definitely doesn't belong here */
-  val globalHook = new GlobalHook(
-    () => viewActor ! ToModel(BigBoss.StartSpeaking),
-    () => viewActor ! ToModel(BigBoss.StopSpeaking)
-  )
-
-  val regButton = new Button("Register Hook") {
-    onAction = _ => println(s"Registering hook: ${globalHook.registerKeyboardHook()}")
-  }
-  val deregButton = new Button("Deregister Hook") {
-    onAction = _ => println(s"Deregistering hook: ${globalHook.deregisterKeyboardHook()}")
-  }
-
   /* check if user inputted a URL or an IP
    * TODO: experiment with non-blocking dialog
    * TODO: make these pattern matches less forgiving?
@@ -109,8 +96,6 @@ class TestButtonPane(
       msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localPeer().id, false))),
       msgButton("Speak", ToModel(BigBoss.StartSpeaking)),
       msgButton("Don't speak", ToModel(BigBoss.StopSpeaking)),
-      regButton,
-      deregButton,
     )
     buttonOrder = "U+"
     padding = Insets(5)

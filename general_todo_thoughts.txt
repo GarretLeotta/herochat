@@ -1,19 +1,14 @@
-PTT:
-Starts transmitting before i press the button. I guess it clears the buffer out, so when I hit PTT
-I hear half a second of audio from before I hit the button, including the mouse button clicking.
-UPDATE: calling line.flush() right before startRecord, mostly mitigates the issue
-
-
 PLAYBACK:
 There's still a bug where player will playback a tiny part of buffer over and over again.
 --Might be reproducible by spam clicking PTT?
-
+--seems to happen every time, just make a loud sound so the loop contains something audible
 
 SETTINGS FILE
   create a settings file in appdata, (cross-platform)
   create it on startup with defaults
   write to it when settings change **NEXT**
   TODO: do this in a reasonable way, without duplicate code
+
 
 ENCRYPTION
   don't know enough to get this in, how do you end to end encrypt in a p2p network?
@@ -26,8 +21,9 @@ Right now, hard to test that audio is still sent after reconnect.
 When we read an audio file, we read it all really quickly and send.
 Need to make a rate-limited file reader for testing
 
+
 PROBLEM:
-PlayQueue & Recorder actors pretty much block a thread in the javax write function.
+PlayQueue & Recorder actors pretty much block up a thread in the javax write function.
 Does this only happen while playing audio?
 What happens with a lot of inactive peers? -> Inactive PlayQueues
 
@@ -35,6 +31,7 @@ Should BigBoss hold a record of messages received - probably
 Need to think more about how this works, replay and all that
 
 Where do I store icons and stuff?
+
 
 Completion:
   Stable lobby of 10 people
@@ -55,3 +52,8 @@ NOISE REDUCTION
   RNNoise
     uses machine learning to reduce noise, supposedly fast
     available in C under BSD license
+
+PTT:
+  Starts transmitting before i press the button. I guess it clears the buffer out, so when I hit PTT
+  I hear half a second of audio from before I hit the button, including the mouse button clicking.
+  UPDATE: calling line.flush() right before startRecord, mostly mitigates the issue

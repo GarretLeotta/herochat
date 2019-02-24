@@ -73,8 +73,10 @@ class Recorder(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor wit
    * This caused a bug, spam-clicking PTT would build up a large delay before all the commands were read.
    */
   def recordAndSend(lastSegment: Boolean): Unit = {
-    /* NOTE: large buffer sizes can cause "cutoff" - Once I let go of PTT, the last bufferSize seconds
-     * of audio won't reach destination.
+    /* NOTE: large buffer sizes can cause "cutoff" - Once I let go of PTT, up to the last bufSzInSeconds
+     * of audio are dropped.
+     * NOTE: 2: Pretty sure this method will be called a ton of times, (targetLine.available == buf.length),
+     * will be false over and over again. Might be useful to only send Next every (bufSzInSeconds / 2)
      */
     if (targetLine.available == buf.length) {
       val bytesRead = targetLine.read(buf, 0, buf.length)

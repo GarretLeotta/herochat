@@ -69,6 +69,9 @@ object BigBoss {
   case class SetServerMuteUser(uuid: UUID, setMute: Boolean) extends BigBossMessage
   case class SetServerDeafenUser(uuid: UUID, setDeafen: Boolean) extends BigBossMessage
   case class SetVolumeUser(uuid: UUID, vol: Double) extends BigBossMessage
+  case class SetPTTDelay(delay: FiniteDuration)
+  case class SetPTTShortcut(shortcut: Settings.KeyBinding)
+  case object SaveSettings
 
   case object CloseFile extends BigBossMessage
   case class ReadFile(filename: String) extends BigBossMessage
@@ -202,7 +205,9 @@ class BigBoss(
   }
 
   def stopRecord(): Unit = {
-    recorder.foreach(_ ! Recorder.Pause)
+    recorder.foreach(
+      system.scheduler.scheduleOnce(settings.pttDelayInMilliseconds, _, Recorder.Pause)
+    )
     log.debug(s"pausing record: $sender")
     updateState(localPeerState.copy(speaking = false))
   }
@@ -410,6 +415,13 @@ class BigBoss(
     case BigBoss.SetVolumeUser(uuid, volume) =>
       peerTable.getShookByUUID(uuid).foreach(_._2 ! AudioControl.SetVolume(volume))
 
+    /* PTT Settings */
+    case BigBoss.SetPTTDelay(delay) =>
+      settings.pttDelayInMilliseconds = delay
+    case BigBoss.SetPTTShortcut(shortcut) =>
+      settings.updateShortcut("ptt", shortcut)
+      settings.writeSettingsFile(settingsFilename)
+
     /* Mixer Options */
     case BigBoss.GetSupportedMixers =>
       val sourceMixers = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
@@ -437,6 +449,10 @@ class BigBoss(
         settings.writeSettingsFile(settingsFilename)
         peerTable.shookPeers.foreach( _._2 ! PeerActor.SetMixer(sourceInfo, sourceMixer) )
       }
+
+    case BigBoss.SaveSettings =>
+      settings.writeSettingsFile(settingsFilename)
+
 
     case BigBoss.GetJoinLink =>
       Tracker.find_public_ip match {

@@ -6,13 +6,15 @@ import scala.concurrent.duration._
 import akka.actor.{ActorRef}
 
 import scalafx.Includes._
-import scalafx.beans.property.{ObjectProperty, StringProperty}
+import scalafx.beans.binding.Bindings
+import scalafx.beans.property.{ObjectProperty, StringProperty, DoubleProperty}
 import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Pos, HPos, Insets}
 import scalafx.scene.Node
 import scalafx.scene.layout.{HBox, VBox, GridPane, ColumnConstraints}
 import scalafx.scene.control.{TextField, Button, Label, ComboBox, ListCell, ListView, Slider}
 import scalafx.scene.text.{Font, FontWeight, Text}
+import scalafx.stage.WindowEvent
 
 import javafx.event.ActionEvent
 
@@ -24,27 +26,47 @@ import herochat.{Peer, ChatMessage, HcView, Settings}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
+/**
+ * Really weird that this class handles shortcuts, but for now, whatever..
+ * TODO: Bindings and properties are handled badly here. Lot of bugs if I don't change pttShortcut
+ * in a specific way. Will need to revisit this code if I want to add any other way to change PTT
+ */
 class OptionsShortcutPane(
-    //var pttBinding: Settings.KeyBinding
+    var pttShortcut: ObjectProperty[Settings.KeyBinding],
+    var pttDelay: DoubleProperty,
   )(implicit val viewActor: ActorRef) extends VBox {
   //style = "-fx-background-color: lightgreen"
   spacing = 10
   padding = Insets(20)
 
-  var pttButtonText = new StringProperty(this, "pttButton")//, pttBinding.toString)
+  val pttButtonText = Bindings.createStringBinding(() => Option(pttShortcut()).map(_.keyCode.toString).getOrElse(""), pttShortcut)
+
   val globalHook = new GlobalHook(
     () => viewActor ! ToModel(BigBoss.StartSpeaking),
     () => viewActor ! ToModel(BigBoss.StopSpeaking)
   )
+
+  /** This is an atrocity, need a common type for inputDevice & keyCode across ghook and herochat.
+   *  Should use scalafx, but scalafx doesn't support mouse4 & mouse5.
+   */
+  def onStartup(): Unit = {
+    /* TODO: toShort can fail, need to handle that */
+    Option(pttShortcut()).map(x => globalHook.registerHookWithCode(x.hid.toString()(0), x.keyCode.toShort))
+  }
+
   /* TODO: convert meaningless numbers to human-readable keys/mouse buttons */
   globalHook.hookProp.onChange { (obsVal, oldVal, newVal) => {
     newVal.hid match {
       case GlobalHook.Keyboard =>
-        pttButtonText.update(newVal.keyCode.toString)
-        viewActor ! ToModel(BigBoss.SetPTTShortcut(Settings.KeyBinding(Settings.Keyboard, newVal.keyCode)))
+        //pttButtonText.update(newVal.keyCode.toString)
+        val binding = Settings.KeyBinding(Settings.Keyboard, newVal.keyCode)
+        pttShortcut.update(binding)
+        viewActor ! ToModel(BigBoss.SetPTTShortcut(binding))
       case GlobalHook.Mouse =>
-        pttButtonText.update(newVal.keyCode.toString)
-        viewActor ! ToModel(BigBoss.SetPTTShortcut(Settings.KeyBinding(Settings.Mouse, newVal.keyCode)))
+        //pttButtonText.update(newVal.keyCode.toString)
+        val binding = Settings.KeyBinding(Settings.Mouse, newVal.keyCode)
+        pttShortcut.update(binding)
+        viewActor ! ToModel(BigBoss.SetPTTShortcut(binding))
       case GlobalHook.NoInput => ()
     }
   }}
@@ -67,9 +89,10 @@ class OptionsShortcutPane(
     )
   }
 
-  val pttDelaySlider = new Slider(0, 1000, 20) {
+  val pttDelaySlider = new Slider(0, 1000, pttDelay()) {
     majorTickUnit = 1
     snapToTicks = true
+    value <==> pttDelay
     value.onChange { (obsVal, oldVal, newVal) => {
       viewActor ! ToModel(BigBoss.SetPTTDelay(newVal.intValue milliseconds))
     }}

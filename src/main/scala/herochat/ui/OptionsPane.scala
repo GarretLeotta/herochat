@@ -3,7 +3,7 @@ package herochat.ui
 import akka.actor.{ActorRef}
 
 import scalafx.Includes._
-import scalafx.beans.property.ObjectProperty
+import scalafx.beans.property.{ObjectProperty, DoubleProperty}
 import scalafx.collections.{ObservableBuffer, ObservableMap}
 import scalafx.geometry.{Pos, Insets}
 import scalafx.scene.layout.{VBox, BorderPane, Pane}
@@ -13,15 +13,19 @@ import javafx.event.ActionEvent
 
 import javax.sound.sampled.{Mixer}
 
-import herochat.{Peer, ChatMessage, HcView}
+import herochat.{Peer, ChatMessage, HcView, Settings}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
-class OptionsPane(var localPeer: ObjectProperty[Peer])(implicit val viewActor: ActorRef) extends BorderPane {
+class OptionsPane(
+    var localPeer: ObjectProperty[Peer],
+    var pttShortcut: ObjectProperty[Settings.KeyBinding],
+    var pttDelay: DoubleProperty,
+  )(implicit val viewActor: ActorRef) extends BorderPane {
 
   val audioTab = new OptionsAudioPane()
   val userTab = new OptionsUserPane(localPeer)
-  val shortcutTab = new OptionsShortcutPane()
+  val shortcutTab = new OptionsShortcutPane(pttShortcut, pttDelay)
 
   var selectedTab =  ObjectProperty[Pane](this, "selectedTab", userTab)
   var activeTabs = new ObservableBuffer[Tuple2[String, Pane]]()
@@ -39,6 +43,10 @@ class OptionsPane(var localPeer: ObjectProperty[Peer])(implicit val viewActor: A
         center = tup._2
       }
     }
+  }
+
+  def onStartup(): Unit = {
+    shortcutTab.onStartup()
   }
 
   left = new VBox {

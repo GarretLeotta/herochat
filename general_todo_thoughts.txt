@@ -1,8 +1,3 @@
-PLAYBACK:
-There's still a bug where player will playback a tiny part of buffer over and over again.
---Might be reproducible by spam clicking PTT?
---seems to happen every time, just make a loud sound so the loop contains something audible
-
 SETTINGS FILE
   create a settings file in appdata, (cross-platform)
   create it on startup with defaults
@@ -17,21 +12,20 @@ ENCRYPTION
   TLS
   OCB-AES128 for encrypted voice comms
 
-Right now, hard to test that audio is still sent after reconnect.
-When we read an audio file, we read it all really quickly and send.
-Need to make a rate-limited file reader for testing
-
 
 PROBLEM:
 PlayQueue & Recorder actors pretty much block up a thread in the javax write function.
 Does this only happen while playing audio?
 What happens with a lot of inactive peers? -> Inactive PlayQueues
+Need to run benchmarks:
+  lot of inactive peers
+  lot of peers talking at once
+
 
 Should BigBoss hold a record of messages received - probably
 Need to think more about how this works, replay and all that
 
 Where do I store icons and stuff?
-
 
 Completion:
   Stable lobby of 10 people
@@ -46,7 +40,6 @@ Enhance file reading/writing features
   support peer joining mid-playback
   support opening multiple files in order
   support opening multiple files at once
-
 
 NOISE REDUCTION
   RNNoise

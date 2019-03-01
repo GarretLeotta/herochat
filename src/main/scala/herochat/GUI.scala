@@ -8,10 +8,11 @@ import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.{ObservableBuffer, ObservableMap}
-import scalafx.beans.property.{ObjectProperty, StringProperty}
+import scalafx.beans.property.{ObjectProperty, StringProperty, DoubleProperty}
 import scalafx.scene.{Scene}
 import scalafx.scene.input.{MouseButton, MouseEvent, KeyEvent}
 import scalafx.scene.layout.{BorderPane}
+import scalafx.stage.WindowEvent
 
 import java.util.UUID
 
@@ -23,17 +24,18 @@ case class ChatMessage(sender: Peer, msg: String) {
   override def toString = s"${sender.nickname}: $msg"
 }
 
-//UI stuff hopefully
 /**
- * TODO: in order to set a OS-global hook for PTT keys, need to use JNI.
- * For now, just use buttons
+ * TODO: extend slider class, display value of slider floating above knob, in a little label or something
  */
-class HcGUI(localPeer: Peer)(implicit val viewActor: ActorRef) extends JFXApp {
+class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp {
   println(s"gui initialized with view: $viewActor")
 
   //used to enable/disable certain buttons, modify user settings in options pane
-  var localPeerProp = ObjectProperty[Peer](this, "localPeer", localPeer)
+  var localPeerProp = ObjectProperty[Peer](this, "localPeer", settings.userSettings)
   var joinLink = new StringProperty(this, "joinLink")
+
+  var pttShortcut = ObjectProperty[Settings.KeyBinding](this, "pttShortcut", settings.shortcuts.getOrElse("ptt", null))
+  var pttDelay = new DoubleProperty(this, "pttDelay", settings.pttDelayInMilliseconds.toMillis)
 
   var usersInLobby = ObservableBuffer[Peer]()
   var userMap = ObservableMap[UUID, Peer]()
@@ -49,7 +51,7 @@ class HcGUI(localPeer: Peer)(implicit val viewActor: ActorRef) extends JFXApp {
     bottom = new TestButtonPane(localPeerProp, joinLink).content
   }
 
-  val optionsScene = new OptionsPane(localPeerProp)
+  val optionsScene = new OptionsPane(localPeerProp, pttShortcut, pttDelay)
 
   val primaryScene = new Scene {
     stylesheets += getClass.getResource("styles.css").toExternalForm
@@ -61,6 +63,10 @@ class HcGUI(localPeer: Peer)(implicit val viewActor: ActorRef) extends JFXApp {
     width = 1100
     height = 700
     scene = primaryScene
+    /* Stuff that can only happen after window is initialized */
+    this.handleEvent(WindowEvent.WindowShown) { event: WindowEvent => {
+      optionsScene.onStartup()
+    }}
   }
 
   def showOptions(): Unit = {

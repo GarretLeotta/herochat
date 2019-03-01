@@ -85,7 +85,9 @@ object MVCAkkaTest extends App {
       //(3.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41332)))),
       (2.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello"))),
       //(3.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbie"))),
-      (3.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello again"))),
+      //(4.0 seconds, bigBossT1, ToModel(BigBoss.Disconnect(new InetSocketAddress("::1", 41330)))),
+      //(5.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
+      (5.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello again"))),
 
     ) map {x => scheduleBulkTasks _ tupled x}
   }

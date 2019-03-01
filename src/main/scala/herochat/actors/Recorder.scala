@@ -1,6 +1,7 @@
 package herochat.actors
 
 import scala.collection.JavaConverters._
+import scala.math.min
 
 import akka.actor.{ActorRef, Props, Actor, ActorLogging}
 
@@ -74,14 +75,15 @@ class Recorder(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor wit
    */
   def recordAndSend(lastSegment: Boolean): Unit = {
     /* NOTE: large buffer sizes can cause "cutoff" - Once I let go of PTT, up to the last bufSzInSeconds
-     * of audio are dropped.
+     * of audio are dropped. - cutoff is mitigated by PTT release delay
      * NOTE: 2: Pretty sure this method will be called a ton of times, (targetLine.available == buf.length),
      * will be false over and over again. Might be useful to only send Next every (bufSzInSeconds / 2)
      */
-    if (targetLine.available == buf.length) {
-      val bytesRead = targetLine.read(buf, 0, buf.length)
+    if (lastSegment || targetLine.available >= buf.length) {
+      val bytesToRead = min(targetLine.available, buf.length)
+      val bytesRead = targetLine.read(buf, 0, bytesToRead)
       subscribers.foreach( sub =>
-        sub ! AudioData(AudioEncoding.Pcm, lastSegment, ByteVector(buf.slice(0, bytesRead+1)))
+        sub ! AudioData(AudioEncoding.Pcm, lastSegment, ByteVector(buf.slice(0, bytesRead)))
       )
     }
   }
@@ -95,7 +97,7 @@ class Recorder(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor wit
       become(active)
       self ! Recorder.Next
     case Recorder.Next =>
-      log.debug(s"recording endOfSegment")
+      log.debug(s"recording endOfSegment, $subscribers")
       recordAndSend(true)
     case _ @ msg => log.debug(s"Inactive: Bad Msg: $msg")
   }

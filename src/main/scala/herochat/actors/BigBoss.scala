@@ -317,10 +317,12 @@ class BigBoss(
       }
       log.debug(s"peer shook OWOR: $peerRef, ${peerTable.shakingPeers}, ${peerTable.shookPeers}")
 
-    /* TODO: are there race conditions here, we don't disconnect from some very young peers */
+    /* TODO: are there race conditions here, we don't disconnect from some very young peers
+     * another race condition - peer completes handshake in between loop1 and loop2
+     */
     case BigBoss.DisconnectAll =>
-      peerTable.shakingPeers.foreach( _._2 ! PeerActor.Disconnect )
-      peerTable.shookPeers.foreach( _._2 ! PeerActor.Disconnect )
+      peerTable.shakingPeers.foreach(removePreShakePeer(_))
+      peerTable.shookPeers.foreach(removePostShakePeer(_))
     case BigBoss.Disconnect(remoteAddress) =>
       log.debug(s"disconnecting from every peer at $remoteAddress, ${peerTable.shakingPeers}, ${peerTable.shookPeers}, ${peerTable.getIsShookByAddr(remoteAddress)}, ${peerTable.getShookByPexAddr(remoteAddress)}")
       peerTable.getIsShookByAddr(remoteAddress).foreach(x => x match {

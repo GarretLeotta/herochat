@@ -36,7 +36,7 @@ class Decoder(sampleRate: SampleFrequency, nChannels: Int) extends Actor with Ac
       subscribers -= sub
     case AudioData(AudioEncoding.Opus, endOfSegment, bytes) =>
       if (endOfSegment) log.debug(s"got endOfSegment")
-
+      
       dec(bytes.toArray) match {
         case Success(dec_frame) =>
           codecs.vector(codecs.short16L).encode(dec_frame.toVector) match {

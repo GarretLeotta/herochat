@@ -35,6 +35,7 @@ class Encoder(sampleLenMillis: Int, sampleRate: SampleFrequency, nChannels: Int)
   var subscribers = scala.collection.mutable.Set[ActorRef]()
 
   def OpusEncodeAndSend(buf: Array[Short], endOfSegment: Boolean): Unit = {
+    if (endOfSegment) log.debug(s"encoding endOfSegment")
     enc(buf) match {
       case Success(enc_frame: Array[Byte]) =>
         Codec.encode(AudioData(AudioEncoding.Opus, endOfSegment, ByteVector(enc_frame))) match {
@@ -42,7 +43,7 @@ class Encoder(sampleLenMillis: Int, sampleRate: SampleFrequency, nChannels: Int)
             val opusBytes = opusBits.bytes
             val hcMsg = HcMessage(MsgTypeAudio, opusBytes.length.toInt, opusBytes)
             subscribers.foreach(sub => sub ! hcMsg)
-          case x => log.debug(s"Error Encoding Audio: $x")
+          case x => log.debug(s"Error Encoding Audio: $x, ${buf.length}, $endOfSegment")
         }
       case Failure(f) =>
         log.debug(s"Opus encoding error: $f, $endOfSegment, ${buf.length}, $nShorts")
@@ -76,7 +77,7 @@ class Encoder(sampleLenMillis: Int, sampleRate: SampleFrequency, nChannels: Int)
             fShorts.zipWithIndex.foreach { case(frame, i) =>
               OpusEncodeAndSend(frame.toArray, endOfSegment && (i == fShorts.length - 1))
             }
-          case x => log.debug(s"Error chunking Audio: $x, $bytes")
+          case x => log.debug(s"Error chunking Audio: $x, $bytes, $endOfSegment")
         }
       }
     case _ @ msg => log.debug(s"Active: Bad Msg: $msg")

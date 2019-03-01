@@ -25,7 +25,7 @@ import herochat.actors.{BigBoss}
 import herochat.SnakeController.ToModel
 
 object HcView {
-  def props(localPeer: Peer): Props = Props(classOf[HcView], localPeer)
+  def props(settings: Settings): Props = Props(classOf[HcView], settings)
 
   abstract class HcViewMessage
 
@@ -55,12 +55,12 @@ object HcView {
  * TODO: determine when I need to run code in Platform.runLater
  */
 class HcView(
-    localPeer: Peer
+    settings: Settings
   ) extends Actor with ActorLogging {
   import context._
 
   //start JFXApp, explicitly pass self
-  val guiInstance = new HcGUI(localPeer)(self)
+  val guiInstance = new HcGUI(settings)(self)
   val guiThread = new Thread(new Runnable() {
     override def run(): Unit = {
       log.debug(s"Initializing GUI thread")

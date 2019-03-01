@@ -35,7 +35,7 @@ class PlayQueue(sourceLine: SourceDataLine) extends Actor with ActorLogging {
         val before = sourceLine.available
         sourceLine.drain()
         val after = sourceLine.available
-        log.debug(s"EOS: $before, $after")
+        log.debug(s"playing endOfSegment: $before, $after")
         sourceLine.stop()
         parent ! PeerActor.StoppedSpeaking
       }

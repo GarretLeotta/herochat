@@ -50,3 +50,6 @@ PTT:
   Starts transmitting before i press the button. I guess it clears the buffer out, so when I hit PTT
   I hear half a second of audio from before I hit the button, including the mouse button clicking.
   UPDATE: calling line.flush() right before startRecord, mostly mitigates the issue
+
+Should clear play buffers if we haven't received any audio in bufferSizeInSeconds or so
+This way the replay bug won't happen if the peer is a bad actor and doesn't send EndOfSegment

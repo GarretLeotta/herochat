@@ -8,7 +8,7 @@ import akka.actor.{ActorRef, Props, Actor, ActorLogging}
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 import java.io.{FileOutputStream}
 
 import za.co.monadic.scopus.{Sf8000, Sf48000, Voip}
@@ -22,23 +22,21 @@ import herochat.HcCodec._
 
 
 object ConnectionHandler {
-  def props(port: Int): Props = Props(classOf[ConnectionHandler], port)
+  def props(address: InetSocketAddress): Props = Props(classOf[ConnectionHandler], address)
 }
 
 /*
  * Handles incoming connections
  */
-class ConnectionHandler(port: Int) extends Actor with ActorLogging {
+class ConnectionHandler(address: InetSocketAddress) extends Actor with ActorLogging {
   import context._
   import Tcp._
-  /* TODO: ipv4? - For now, no ipv4 support, much easier to just deal with ipv6.
-   * No NAT punching required.
-   */
-  IO(Tcp) ! Tcp.Bind(self, new InetSocketAddress("::1", port))
+  
+  IO(Tcp) ! Tcp.Bind(self, address: InetSocketAddress)
 
   def receive: Receive = {
     case Connected(remoteAddress, localAddress) =>
-      log.debug(s"received connection from: $remoteAddress, $localAddress")
+      log.debug(s"received connection from: $remoteAddress -> $localAddress")
       parent ! BigBoss.IncomingConnection(remoteAddress, localAddress, sender)
     case _ @ msg => log.debug(s"Bad Msg: $msg")
   }

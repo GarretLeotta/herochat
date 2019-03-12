@@ -130,8 +130,9 @@ class BigBoss(
 
   //IP address we listen for new connections on
   /* TODO: LATER: support modifying what port we listen on during runtime */
-  val listenAddress = new InetSocketAddress("::1", settings.localPort)
-  val connHandler = context.actorOf(ConnectionHandler.props(settings.localPort), "hc-connection-handler")
+  /* TODO: handle failing to find public ip address */
+  val listenAddress = new InetSocketAddress(Tracker.find_public_ip().get, settings.localPort)
+  val connHandler = context.actorOf(ConnectionHandler.props(listenAddress), "hc-connection-handler")
 
   /* TODO: support multiple simultaneous file reads/writes */
   val filereader = context.actorOf(FileReader.props(), "hc-filereader")
@@ -251,13 +252,13 @@ class BigBoss(
 
     //Incoming Connection, message received from connectionHandler
     case BigBoss.IncomingConnection(remoteAddress, localAddress, socketRef) =>
-      log.debug(s"checking incoming peer: $remoteAddress, $localAddress")
+      log.debug(s"checking incoming peer: $remoteAddress -> $localAddress")
       //check that this peer isn't ourselves, and that we aren't already connected to it
       if (!peerTable.preShakeVerify(remoteAddress, listenAddress)) {
-        log.debug(s"Duplicate/Self-connected peer incoming: $remoteAddress, $localAddress")
+        log.debug(s"Duplicate/Self-connected peer incoming: $remoteAddress -> $localAddress")
         socketRef ! Write(ByteString(HcDisconnect.toByteArray))
       } else {
-        log.debug(s"Creating Peer actor: $remoteAddress, $localAddress")
+        log.debug(s"Creating Peer actor: $remoteAddress -> $localAddress")
         val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, localPeerState, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
         socketRef ! Register(peerRef)
         peerTable.shakingPeers += ((remoteAddress, peerRef, false, Instant.now))
@@ -358,12 +359,13 @@ class BigBoss(
           val utf8Bytes = utf8Bits.bytes
           val hcMsg = HcMessage(MsgTypeText, utf8Bytes.length.toInt, utf8Bytes)
           peerTable.shookPeers.foreach(peer => peer._2 ! hcMsg)
+          self ! BigBoss.ReceivedMessage(localPeerState.id, msg)
         case x =>
           log.debug(s"Failed encoding Message to utf8: $msg, $x")
       }
 
     //Received a chat message
-    case msg: BigBoss.ReceivedMessage => parent ! msg
+    case msg: BigBoss.ReceivedMessage => parent ! ToView(msg)
 
     case BigBoss.StartSpeaking if !localPeerState.muted =>
       /* TODO: this is conditional based on logging */

@@ -162,12 +162,12 @@ class HcView(
       guiInstance.joinLink.update(joinLink)
     }
 
-    case ToModel(msg) => parent ! ToModel(msg)
-
-    case msg: ChatMessage => Platform.runLater {
-      guiInstance.messages += msg
+    case BigBoss.ReceivedMessage(uuid, msg) => Platform.runLater {
+      guiInstance.messages += ChatMessage(guiInstance.userMap(uuid), msg)
       log.debug(s"received chat message: $msg")
     }
+
+    case ToModel(msg) => parent ! ToModel(msg)
     case _ @ msg => log.debug(s"Bad Msg: $msg, $sender")
   }
 }

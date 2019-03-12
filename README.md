@@ -7,8 +7,10 @@ Herochat is a peer to peer Voice over Internet Application.
 Building
 --------
 
+~~~~
 sbt compile
 sbt universal:packageBin
+~~~~
 
 Dependencies
 ------------

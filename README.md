@@ -1,19 +1,24 @@
-Herochat
---------
+Herochat - Serverless Voice Chat
+================================
 
-Herochat is a peer to peer Voice over Internet Application.
+Herochat is a peer to peer Voice over Internet Application. You can use it to easily talk to your friends over the internet without depending on an external server. 
+
+Herochat has been tested on Windows 10 computers only.
 
 
-Building
---------
+## Building
+
 
 ~~~~
 sbt compile
 sbt universal:packageBin
 ~~~~
 
-Dependencies
-------------
+Sbt will produce a zip file containing a batch script "main.bat". Run the script to run Herochat.
+
+
+## Dependencies
+
 
 * Scopus - Scala interface to the Opus codec
   - https://github.com/davidmweber/scopus
@@ -24,7 +29,7 @@ Dependencies
   - https://github.com/GarretLeotta/GHook
 
 
-License
--------
+## License
+
 
 MIT License

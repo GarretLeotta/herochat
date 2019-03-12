@@ -25,31 +25,27 @@ Need to run benchmarks:
 Should BigBoss hold a record of messages received - probably
 Need to think more about how this works, replay and all that
 
-Where do I store icons and stuff?
+Where do I store icons and ui stuff?
 
-Completion:
-  Stable lobby of 10 people
+Completion - Basic functionality:
+  Stable lobby of ~10 people
     If one person joins, they are connected via PEX to other members quickly
     Auto-reconnect - rate limited, timeouts
     Lobby-members cede their connect ability, A lobby member can't unilaterally connect to someone
     out-of-lobby, they can invite them, and the invitee can accept
       Generally, add a UI hook where users decide to accept connections (PEX excluded?)
-  Friends List
+    --above is  little weird
 
 Enhance file reading/writing features
-  support peer joining mid-playback
-  support opening multiple files in order
-  support opening multiple files at once
+  support peer joining mid-playback - requires rate-limited file reader
+  support a playlist
+  virtual user? -- Norbert, Norbert (Music)
 
 NOISE REDUCTION
   RNNoise
     uses machine learning to reduce noise, supposedly fast
     available in C under BSD license
 
-PTT:
-  Starts transmitting before i press the button. I guess it clears the buffer out, so when I hit PTT
-  I hear half a second of audio from before I hit the button, including the mouse button clicking.
-  UPDATE: calling line.flush() right before startRecord, mostly mitigates the issue
 
 Should clear play buffers if we haven't received any audio in bufferSizeInSeconds or so
 This way the replay bug won't happen if the peer is a bad actor and doesn't send EndOfSegment

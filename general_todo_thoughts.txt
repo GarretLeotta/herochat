@@ -3,12 +3,18 @@ SETTINGS FILE
   create it on startup with defaults
   write to it when settings change **NEXT**
   TODO: do this in a reasonable way, without duplicate code
+  When to write settings:
+    On transition from settings screen -> lobby screen
+    When a peer disconnects
+    On exit
 
 
 ENCRYPTION
   don't know enough to get this in, how do you end to end encrypt in a p2p network?
   all ssl certificates are self-signed for convenience..
   web of trust?
+  can use assymetric key encryption, but can't guarantee that a peer owns the public key they claim
+  to own
   TLS
   OCB-AES128 for encrypted voice comms
 

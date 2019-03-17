@@ -148,10 +148,19 @@ class BigBoss(
   var localPeerState = settings.userSettings
   parent ! ToView(PeerState.NewPeer(localPeerState))
 
-  def updateState(newPeerState: Peer): Unit = {
+
+  def updateUserSettings(newPeerState: Peer): Unit = {
     localPeerState = newPeerState
     settings.userSettings = localPeerState
     parent ! ToView(PeerState.UpdatePeer(newPeerState))
+  }
+
+  def updatePeerSettings(newPeerState: Peer): Unit = {
+    settings.peerSettings(newPeerState.id) = newPeerState
+  }
+
+  override def postStop {
+    settings.writeSettingsFile(settingsFilename)
   }
 
   def removePreShakePeer(peerTuple: PeerTable.PreShakePeer): Unit = {
@@ -202,7 +211,7 @@ class BigBoss(
   def startRecord(): Unit = {
     log.debug(s"starting record: $sender")
     recorder.foreach(_ ! Recorder.Record)
-    updateState(localPeerState.copy(speaking = true))
+    updateUserSettings(localPeerState.copy(speaking = true))
   }
 
   def stopRecord(): Unit = {
@@ -210,7 +219,7 @@ class BigBoss(
       system.scheduler.scheduleOnce(settings.pttDelayInMilliseconds, _, Recorder.Pause)
     )
     log.debug(s"pausing record: $sender")
-    updateState(localPeerState.copy(speaking = false))
+    updateUserSettings(localPeerState.copy(speaking = false))
   }
 
 
@@ -230,7 +239,7 @@ class BigBoss(
   }
   def completeHandshake(remoteAddr: InetSocketAddress, peerRef: ActorRef, remoteUUID: UUID, pexAddr: InetSocketAddress): Unit = {
     log.debug(s"Completing Handshake for: $remoteAddr, $remoteUUID, $peerRef, $pexAddr")
-    peerRef ! PeerActor.HandshakeComplete
+    peerRef ! PeerActor.HandshakeComplete(settings.peerSettings.get(remoteUUID))
     peerRef ! PeerActor.SetMixer(sourceInfo, sourceMixer)
     context watch peerRef
     peerTable.completeShake(remoteAddr, peerRef, remoteUUID, pexAddr)
@@ -348,8 +357,15 @@ class BigBoss(
           removePostShakePeer(peerTuple)
       })
 
-    /* Peers alert us of changes in their state, forward to the controller */
-    case msg: PeerState.PeerStateChange => parent ! ToView(msg)
+    /* Write to settings file, so that Peer settings are correct if/when peer reconnects
+     * Forward RemovePeer messages to controller. */
+    case msg: PeerState.RemovePeer =>
+      settings.writeSettingsFile(settingsFilename)
+      parent ! ToView(msg)
+    /* Update Settings file with new peers and updates to peers  */
+    case msg: PeerState.PeerStateChange =>
+      updatePeerSettings(msg.peer)
+      parent ! ToView(msg)
 
     //public chat commands
     case BigBoss.Shout(msg) =>
@@ -381,9 +397,7 @@ class BigBoss(
     case BigBoss.SetNickname(uuid, newName) =>
       if (uuid == localPeerState.id) {
         log.debug(s"Changing $uuid nickname to $newName")
-        updateState(localPeerState.copy(nickname = newName))
-        settings.writeSettingsFile(settingsFilename)
-        //parent ! ToView(HcView.ChangeNickname(user, newUser))
+        updateUserSettings(localPeerState.copy(nickname = newName))
       }
     case BigBoss.SetMuteUser(uuid, setMute) =>
       peerTable.getShookByUUID(uuid) match {
@@ -396,7 +410,7 @@ class BigBoss(
           }
         case None =>
           log.debug(s"Setting mute on self to $setMute")
-          updateState(localPeerState.copy(muted = setMute))
+          updateUserSettings(localPeerState.copy(muted = setMute))
       }
     case BigBoss.SetDeafenUser(uuid, setDeafen) =>
       if (uuid == localPeerState.id) {
@@ -405,7 +419,7 @@ class BigBoss(
         } else {
           peerTable.shookPeers.foreach(_._2 ! PeerActor.PlayAudio)
         }
-        updateState(localPeerState.copy(deafened = setDeafen))
+        updateUserSettings(localPeerState.copy(deafened = setDeafen))
       }
 
     case BigBoss.SetBlockUser(user, setBlock) =>
@@ -424,7 +438,6 @@ class BigBoss(
       settings.pttDelayInMilliseconds = delay
     case BigBoss.SetPTTShortcut(shortcut) =>
       settings.updateShortcut("ptt", shortcut)
-      settings.writeSettingsFile(settingsFilename)
 
     /* Mixer Options */
     case BigBoss.GetSupportedMixers =>
@@ -442,7 +455,6 @@ class BigBoss(
       if (mixer != targetMixer) {
         targetMixer = mixer
         settings.soundSettings = settings.soundSettings.copy(inputMixer = mixer)
-        settings.writeSettingsFile(settingsFilename)
         respawnRecorder()
       }
     case BigBoss.SetOutputMixer(mixer) =>
@@ -450,13 +462,11 @@ class BigBoss(
       if (mixer != sourceMixer) {
         sourceMixer = mixer
         settings.soundSettings = settings.soundSettings.copy(outputMixer = mixer)
-        settings.writeSettingsFile(settingsFilename)
         peerTable.shookPeers.foreach( _._2 ! PeerActor.SetMixer(sourceInfo, sourceMixer) )
       }
 
     case BigBoss.SaveSettings =>
       settings.writeSettingsFile(settingsFilename)
-
 
     case BigBoss.GetJoinLink =>
       Tracker.find_public_ip match {

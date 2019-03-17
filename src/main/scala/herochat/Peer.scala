@@ -4,7 +4,7 @@ package herochat
 import java.util.UUID
 
 /**
- * 
+ *
  */
 case class Peer(
     val id: UUID,
@@ -18,8 +18,8 @@ case class Peer(
 
 
 object PeerState {
-  abstract class PeerStateChange()
-  case class NewPeer(peer: Peer) extends PeerStateChange
-  case class UpdatePeer(peer: Peer) extends PeerStateChange
-  case class RemovePeer(peer: Peer) extends PeerStateChange
+  abstract class PeerStateChange(val peer: Peer)
+  case class NewPeer(override val peer: Peer) extends PeerStateChange(peer)
+  case class UpdatePeer(override val peer: Peer) extends PeerStateChange(peer)
+  case class RemovePeer(override val peer: Peer) extends PeerStateChange(peer)
 }

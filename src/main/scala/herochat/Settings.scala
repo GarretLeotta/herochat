@@ -138,7 +138,7 @@ class Settings(
     if (file.isDirectory) {
       throw new IllegalArgumentException(s"Proposed Settings File, ( ${file.getAbsolutePath} ), is a Directory/Folder")
     } else {
-      println(s"writing settings file, $peerSettings, ${JString(Serialization.write(peerSettings.values))}")
+      println(s"writing settings file")
       val fileWriter = new FileWriter(file)
       Serialization.writePretty(this, fileWriter)
       fileWriter.close()

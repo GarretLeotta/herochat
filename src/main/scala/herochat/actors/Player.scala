@@ -89,7 +89,7 @@ class AudioPlayer(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor 
     sourceLine.close()
   }
 
-  /* Doesn't belong here */
+  /* TODO: Doesn't belong here */
   def percent_to_decibel(percent_volume: Double): Double = {
     10.0 * scala.math.log10(percent_volume)
   }

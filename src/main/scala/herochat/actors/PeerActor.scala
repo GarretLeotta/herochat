@@ -42,7 +42,7 @@ object PeerActor {
   case object HandshakeReceiver extends InitialState
 
   case object HandshakeTimeout
-  case object HandshakeComplete
+  case class HandshakeComplete(savedPeerState: Option[Peer])
 
   type HcMessageHandler = OrderedPartialFunction[HcMessage, Unit]
 }
@@ -91,6 +91,7 @@ class PeerActor(
     /* TODO: should these be get? */
     player = Some(context.actorOf(AudioPlayer.props(lineInfo.get, mixerInfo.get), s"hc-player-$playerI"))
     decoder ! AddSubscriber(player.get)
+    player.foreach(_ ! AudioControl.SetVolume(peerState.get.volume))
     if (peerState.get.muted) {
       player.foreach(_ ! AudioControl.Mute)
     } else {
@@ -99,7 +100,19 @@ class PeerActor(
     playerI += 1
   }
 
+  def combineSavedAndNewState(savedPeerState: Peer, newPeerState: Peer): Peer = {
+    Peer(
+      newPeerState.id,
+      newPeerState.nickname,
+      savedPeerState.muted,
+      savedPeerState.deafened,
+      savedPeerState.speaking,
+      savedPeerState.volume,
+    )
+  }
+
   def updateState(newPeerState: Peer): Unit = {
+    log.debug(s"in update state $parent")
     peerState = Some(newPeerState)
     parent ! PeerState.UpdatePeer(newPeerState)
   }
@@ -119,9 +132,11 @@ class PeerActor(
 
   //Base case handlers for handshake states
   val basicPreShookReceive: PartialFunction[Any, Unit] = {
-    case HandshakeComplete =>
+    case HandshakeComplete(savedPeerState) =>
       log.debug(s"Handshake complete, entering dynamic state")
       become(dynamicReceive)
+      savedPeerState.foreach{ x: Peer => peerState = Some(combineSavedAndNewState(x, peerState.get)) }
+
       parent ! PeerState.NewPeer(peerState.get)
     case HandshakeTimeout =>
       log.debug(s"Handshake timed out, disconnecting from remote host")
@@ -144,6 +159,7 @@ class PeerActor(
     val id = mapForm(AuthPayload.tUUID).right.get.asInstanceOf[AuthPayload.AuthTypeUUID].uuid
     val name = mapForm(AuthPayload.tNickname).right.get.asInstanceOf[AuthPayload.AuthTypeNickname].nickname
     remoteListeningPort = mapForm(AuthPayload.tPort).right.get.asInstanceOf[AuthPayload.AuthTypePort].port
+    /* Default Peer State, BigBoss sends State from file on Handshakecomplete */
     peerState = Some(Peer(id, name, false, false, false, 1.0))
   }
 

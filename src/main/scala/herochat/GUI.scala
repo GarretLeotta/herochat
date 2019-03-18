@@ -43,18 +43,20 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
 
   var messages = ObservableBuffer[ChatMessage]()
 
+  val stylesheet = getClass.getResource("styles.css").toExternalForm
+
   val defaultScene = new BorderPane {
     top = new TitlePane().content
     left = new LobbyPane(userMap, localPeerProp).content
     center = new ChatPane(messages).content
     //right = new ServerPane(serverList).content
-    bottom = new TestButtonPane(localPeerProp, joinLink).content
+    bottom = new TestButtonPane(stylesheet, localPeerProp, joinLink).content
   }
 
-  val optionsScene = new OptionsPane(localPeerProp, pttShortcut, pttDelay)
+  val optionsScene = new OptionsPane(settings, localPeerProp, pttShortcut, pttDelay)
 
   val primaryScene = new Scene {
-    stylesheets += getClass.getResource("styles.css").toExternalForm
+    stylesheets += stylesheet
     root = defaultScene
   }
 

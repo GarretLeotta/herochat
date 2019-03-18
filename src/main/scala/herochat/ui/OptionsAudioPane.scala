@@ -15,13 +15,12 @@ import javafx.event.ActionEvent
 
 import javax.sound.sampled.{Mixer}
 
-import herochat.{ChatMessage, HcView}
+import herochat.{ChatMessage, HcView, Settings}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
 
-class OptionsAudioPane()(implicit val viewActor: ActorRef) extends VBox {
-  //style = "-fx-background-color: lightgreen"
+class OptionsAudioPane(settings: Settings)(implicit val viewActor: ActorRef) extends VBox {
   spacing = 10
   padding = Insets(20)
 
@@ -46,14 +45,11 @@ class OptionsAudioPane()(implicit val viewActor: ActorRef) extends VBox {
           }}
         }
       }
-      onAction = {ae: ActionEvent =>
-        currentMixer.update(this.value.value)
-        viewActor ! msgFunc(this.value.value)
+      value <==> currentMixer
+      onAction = { ae: ActionEvent =>
+        viewActor ! msgFunc(this.value())
       }
     }
-    currentMixer.onChange { (obsVal, oldVal, newVal) => {
-      comboBox.value = newVal
-    }}
     comboBox
   }
   val inMixerSelectBox = mixerComboBox(inMixers, selectedInMixer, ((mixer: Mixer.Info) => ToModel(BigBoss.SetInputMixer(mixer))))
@@ -64,7 +60,6 @@ class OptionsAudioPane()(implicit val viewActor: ActorRef) extends VBox {
     hgap = 10
     vgap = 10
     padding = Insets(10)
-    gridLinesVisible = true
     columnConstraints = List(
       new ColumnConstraints {
         halignment = HPos.Left
@@ -75,21 +70,17 @@ class OptionsAudioPane()(implicit val viewActor: ActorRef) extends VBox {
         percentWidth = 50
       }
     )
-
-    add(new Label("Audio Settings") {
-      style = "-fx-background-color: lavender"
-    }, 0, 0, 2, 1)
-    add(new Label("Input Device") {
-      style = "-fx-background-color: khaki"
-    }, 0, 1)
-    add(new Label("Output Device") {
-      style = "-fx-background-color: lightpink"
-    }, 1, 1)
-    add(inMixerSelectBox, 0, 2)
-    add(outMixerSelectBox, 1, 2)
+    add(new Label("Input Device"), 0, 0)
+    add(new Label("Output Device"), 1, 0)
+    add(inMixerSelectBox, 0, 1)
+    add(outMixerSelectBox, 1, 1)
   }
 
   children = Array(
+    new Text("Audio Settings") {
+      font = Font.font(null, FontWeight.Bold, 18)
+      alignmentInParent = Pos.CenterLeft
+    },
     audioSettings,
   )
 }

@@ -268,8 +268,8 @@ class PeerActor(
   })
   val nicknameHandler = new HcMessageHandler(0, {
     case HcMessage(MsgTypeChangeNickname, msgLength, payload) =>
-      //change remoteUSer, peerstate
-      ()
+      /* TODO: TODO: */
+      updateState(peerState.get.copy(nickname = utf8.decode(payload.bits).require.value))
   })
   /* Handle unrecognized HcMessages, at lowest possible priority */
   val defaultHandler: String => HcMessageHandler = state => new HcMessageHandler(Int.MaxValue, {
@@ -343,7 +343,7 @@ class PeerActor(
   }
 
   val dynMute = scala.collection.mutable.SortedSet[HcMessageHandler](textHandler, muteAudioHandler, pexHandler, defaultHandler("dynamic"))
-  val dynPlay = scala.collection.mutable.SortedSet[HcMessageHandler](textHandler, playAudioHandler, pexHandler, defaultHandler("dynamic"))
+  val dynPlay = scala.collection.mutable.SortedSet[HcMessageHandler](textHandler, playAudioHandler, pexHandler, nicknameHandler, defaultHandler("dynamic"))
   /* Default state is play */
   dynHandlers = dynPlay
 

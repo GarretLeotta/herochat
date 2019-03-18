@@ -23,6 +23,7 @@ import herochat.SnakeController.ToModel
 import ghook.GlobalHook
 
 class TestButtonPane(
+    var stylesheet: String,
     var localPeer: ObjectProperty[Peer],
     var joinLink: StringProperty
   )(implicit val viewActor: ActorRef) {
@@ -41,7 +42,7 @@ class TestButtonPane(
   val connButton = new Button("Connect") {
     onAction = (event: ActionEvent) => {
       viewActor ! ToModel(BigBoss.GetJoinLink)
-      val dialog = new ConnectionDialog()
+      val dialog = new ConnectionDialog(stylesheet)
       dialog.showAndWait().foreach(viewActor ! HcView.ConnectString(_))
     }
   }
@@ -58,6 +59,7 @@ class TestButtonPane(
         title = "Invite Your Friends with this one weird trick!"
         resizable = false
         scene = new Scene(400, 200) {
+          stylesheets += stylesheet
           root = new VBox {
             spacing = 10
             padding = Insets(20)

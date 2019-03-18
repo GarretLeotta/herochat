@@ -69,7 +69,7 @@ class LobbyPane(
     peerState.nickname + "; " +
     peerState.muted + "; " +
     peerState.deafened + "; " +
-    peerState.volume
+    f"${peerState.volume}%1.2f"
   }
 
   /* This will become a problem point. We create a new peer node every time the state changes.
@@ -109,9 +109,9 @@ class LobbyPane(
   }
 
   /* this is a pretty strong case for SetMute(boolean), rather than Mute / UnMute */
-  /* TODO: utility to set starting state of checkbox */
-  def checkBoxMenuItem(label: String, msgFunc: Boolean => Any): MenuItem = {
-    /* TODO: checkboxes need to watch peerState.muted, etc */
+  /* TODO: would properties for every peer be better than current system? */
+  /* I think this works now, because we run this every time peerState changes */
+  def checkBoxMenuItem(label: String, startValue: Boolean, msgFunc: Boolean => Any): MenuItem = {
     new CustomMenuItem {
       hideOnClick = false
       content = new HBox {
@@ -119,6 +119,7 @@ class LobbyPane(
         children = Seq(
           new Text(label),
           new CheckBox {
+            this.selected = startValue
             onAction = (event: ActionEvent) => {
               viewActor ! msgFunc(this.selected())
             }
@@ -132,9 +133,9 @@ class LobbyPane(
   def createUserContextMenu(peerState: Peer): ContextMenu = {
     var menuItems = Buffer[MenuItem]()
 
-    menuItems += checkBoxMenuItem("Mute", ((x: Boolean) => ToModel(BigBoss.SetMuteUser(peerState.id, x))))
+    menuItems += checkBoxMenuItem("Mute", peerState.muted, ((x: Boolean) => ToModel(BigBoss.SetMuteUser(peerState.id, x))))
     if (peerState.id == localPeer().id) {
-      menuItems += checkBoxMenuItem("Deafen", ((x: Boolean) => ToModel(BigBoss.SetDeafenUser(peerState.id, x))))
+      menuItems += checkBoxMenuItem("Deafen", peerState.deafened, ((x: Boolean) => ToModel(BigBoss.SetDeafenUser(peerState.id, x))))
     } else {
       /* TODO: add block */
       //menuItems += checkBoxMenuItem("Block", ((x: Boolean) => ToModel(BigBoss.SetBlockUser(peerState.user, x))))
@@ -144,7 +145,6 @@ class LobbyPane(
           majorTickUnit = .01
           snapToTicks = true
           value.onChange { (obsVal, oldVal, newVal) => {
-            //println(s"slider value changed: $newVal")
             viewActor ! ToModel(BigBoss.SetVolumeUser(peerState.id, newVal.doubleValue))
           }}
         }

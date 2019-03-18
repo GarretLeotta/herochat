@@ -18,12 +18,13 @@ import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
 class OptionsPane(
+    settings: Settings,
     var localPeer: ObjectProperty[Peer],
     var pttShortcut: ObjectProperty[Settings.KeyBinding],
     var pttDelay: DoubleProperty,
   )(implicit val viewActor: ActorRef) extends BorderPane {
 
-  val audioTab = new OptionsAudioPane()
+  val audioTab = new OptionsAudioPane(settings)
   val userTab = new OptionsUserPane(localPeer)
   val shortcutTab = new OptionsShortcutPane(pttShortcut, pttDelay)
 
@@ -56,7 +57,7 @@ class OptionsPane(
     padding = Insets(20)
     children = activeTabs.map(tabButton)
   }
-  center = selectedTab.value
+  center = selectedTab()
   right = new OptionsExitPane().content
 }
 

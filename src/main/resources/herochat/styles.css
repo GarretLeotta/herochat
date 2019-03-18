@@ -1,46 +1,48 @@
-/*.check-box {
-  -fx-text-background-color: white;
+.root {
+    -fx-base: #3f474f;
+    -fx-accent: #e7eff7;
+    -fx-default-button: #7f878f;
+    -fx-focus-color: #efefef;
+    -fx-faint-focus-color: #efefef22;
+    -fx-focused-text-base-color : ladder(
+            -fx-selection-bar,
+            -fx-light-text-color 45%,
+            -fx-dark-text-color 46%,
+            -fx-dark-text-color 59%,
+            -fx-mid-text-color 60%
+        );
+    -fx-focused-mark-color : -fx-focused-text-base-color ;
 }
 
-.check-box .box {
-  -fx-shadow-highlight-color: grey;
-  -fx-background-color: -fx-shadow-highlight-color, -fx-outer-border, -fx-inner-border, white;
+.text-input:focused {
+    -fx-highlight-text-fill: ladder(
+        -fx-highlight-fill,
+        -fx-light-text-color 45%,
+        -fx-dark-text-color  46%,
+        -fx-dark-text-color  59%,
+        -fx-mid-text-color   60%
+    );
 }
 
-.check-box:selected .mark {
-  -fx-background-color: white;
-}
-
-.check-box:selected .box {
-  -fx-background-color: blue;
-}*/
-
-
-/* TODO: replace this stuff */
 
 .check-box {
-    -unchecked-color: #5A5A5A;
-    -checked-color: #0F9D58;
+    -unchecked-color: #8A8A8A;
+    -checked-color: #0faaff;
+
+    -fx-text-background-color: #3f474f;
+    -fx-shadow-highlight-color: BLACK;
+    -fx-text-box-border: #e7eff7;
 }
 
-.check-box .box-container {
+.check-box-blahblah .box-container {
     -fx-shape: "M 400 100 L 400 100 A 50 50 0 1 1 400 250 A 50 50 0 1 1 400 100 ";
     -fx-padding: 10;
 }
 
 .check-box .box,
 .check-box:indeterminate .box,
-.check-box:indeterminate:selected .box{
-    -fx-pref-width: 18;
-    -fx-pref-height: 18;
-
-    -fx-min-width: -fx-pref-width;
-    -fx-max-width: -fx-pref-width;
-    -fx-min-height: -fx-pref-height;
-    -fx-max-height: -fx-pref-height;
-
+.check-box:indeterminate:selected .box {
     -fx-background-color: TRANSPARENT;
-    -fx-background-radius: 2;
 
     -fx-border-color: -unchecked-color;
     -fx-border-style: solid;
@@ -49,6 +51,8 @@
 }
 
 .check-box:selected .box {
+    -fx-background-color: -checked-color;
+
     -fx-border-color: -checked-color;
     -fx-text-fill: -checked-color;
 }
@@ -58,9 +62,9 @@
     -fx-max-width: 15;
     -fx-max-height: 12;
 
-    -fx-background-color: WHITE;
+    -fx-background-color: TRANSPARENT;
 
-    -fx-border-color: WHITE;
+    -fx-border-color: TRANSPARENT;
     -fx-border-width: 2;
     -fx-border-radius: 2;
 }
@@ -73,14 +77,19 @@
     -fx-max-height: 10;
 }
 
-
-
+.check-box:selected .mark {
+    -fx-background-color: WHITE;
+    -fx-border-color: WHITE;
+}
 
 
 
 .slider {
-    -default-thumb: #0F9D58;
+    -default-thumb: #0faaff;
     -default-track: #CCCCCC;
+
+    -fx-focus-color: #e7eff7;
+    -fx-shadow-highlight-color: BLACK;
 }
 
 .slider .track,

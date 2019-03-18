@@ -26,6 +26,7 @@ import herochat.{Peer, ChatMessage, HcView, Settings}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
+/* TODO: create class that display options in a grid */
 /**
  * Really weird that this class handles shortcuts, but for now, whatever..
  * TODO: Bindings and properties are handled badly here. Lot of bugs if I don't change pttShortcut
@@ -101,8 +102,7 @@ class OptionsShortcutPane(
   val grid = new GridPane {
     hgap = 10
     vgap = 10
-    //padding = Insets(10)
-    //gridLinesVisible = true
+    padding = Insets(10)
     columnConstraints = List(
       new ColumnConstraints {
         halignment = HPos.Left

@@ -56,7 +56,6 @@ object HcCodec {
   val MsgTypeRequestPex = 420
   val MsgTypeRefusePex = 421
 
-
   val MsgTypeLobbyInfo = 5
 
   val MsgTypeChangeNickname = 610

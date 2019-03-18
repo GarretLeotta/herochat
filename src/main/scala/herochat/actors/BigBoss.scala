@@ -398,6 +398,18 @@ class BigBoss(
       if (uuid == localPeerState.id) {
         log.debug(s"Changing $uuid nickname to $newName")
         updateUserSettings(localPeerState.copy(nickname = newName))
+
+        /* TODO: abstract this encode stuff
+         * TODO: is it wise to have this stuff in bigboss?? maybe put this code in protocol
+         */
+        utf8.encode(newName) match {
+          case Attempt.Successful(utf8Bits) =>
+            val utf8Bytes = utf8Bits.bytes
+            val hcMsg = HcMessage(MsgTypeChangeNickname, utf8Bytes.length.toInt, utf8Bytes)
+            peerTable.shookPeers.foreach(_._2 ! hcMsg)
+          case x =>
+            log.debug(s"Failed encoding new nickname to utf8: $newName, $x")
+        }
       }
     case BigBoss.SetMuteUser(uuid, setMute) =>
       peerTable.getShookByUUID(uuid) match {

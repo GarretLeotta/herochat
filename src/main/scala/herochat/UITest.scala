@@ -95,6 +95,31 @@ object MVCAkkaTest extends App {
   testFunctions("testUI") = testUI
 
 
+  /* BigBoss with UI (SnakeController) acts as recorder, bunch of FakeControllers connect */
+  def testABunch(args: Array[String]): Unit = {
+    def createFakeController(i: Int): ActorRef = {
+      system.actorOf(FakeController.props(killswitch, false, Some(s"settings.$i.json")), s"fakeCtrl$i")
+    }
+    def intToSeconds(i: Int): FiniteDuration = {
+      (1.0 seconds) + (i * 0.5 seconds)
+    }
+
+    val ip6addr = Tracker.find_public_ip().get
+    val controller = system.actorOf(SnakeController.props(killswitch, true, None), s"hcController")
+    val bigBosses = (1 to 10).map(createFakeController)
+
+    val commands = bigBosses.zipWithIndex.flatMap { case (ref, i) =>
+      Vector(
+        (intToSeconds(i), ref, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr, 41330)))),
+        (intToSeconds(i) + (0.25 seconds), ref, ToModel(BigBoss.Shout("Hello"))),
+      )
+    } ++ bigBosses.map { ref =>
+      (7 seconds, ref, ToModel(BigBoss.DebugPrintConnectedPeers))
+    } ++ Vector((7 seconds, controller, ToModel(BigBoss.DebugPrintConnectedPeers)))
+    commands.map( x => scheduleBulkTasks _ tupled x )
+  }
+  testFunctions("testABunch") = testABunch
+
 
 
   if (args.isEmpty) {

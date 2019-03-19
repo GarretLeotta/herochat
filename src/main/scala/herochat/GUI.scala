@@ -10,6 +10,7 @@ import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.{ObservableBuffer, ObservableMap}
 import scalafx.beans.property.{ObjectProperty, StringProperty, DoubleProperty}
 import scalafx.scene.{Scene}
+import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.input.{MouseButton, MouseEvent, KeyEvent}
 import scalafx.scene.layout.{BorderPane}
 import scalafx.stage.WindowEvent
@@ -59,9 +60,9 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
     stylesheets += stylesheet
     root = defaultScene
   }
-
   stage = new PrimaryStage {
-    title = "Herochat (Test)"
+    title = "Herochat (Dev)"
+    icons += new Image(getClass.getClassLoader.getResourceAsStream("images/icon.png"))
     width = 1100
     height = 700
     scene = primaryScene

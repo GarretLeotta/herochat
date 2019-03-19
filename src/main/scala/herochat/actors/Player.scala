@@ -71,7 +71,7 @@ class AudioPlayer(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor 
   val playQueue = context.actorOf(PlayQueue.props(sourceLine), "playQueue")
 
   log.debug(s"this line: $sourceLine, ${inmix.getMaxLines(lineInfo)}")
-  log.debug(s"inmix lines: ${inmix.getSourceLines.mkString(" :: ")}")
+  log.debug(s"inmix lines: ${inmix.getSourceLines.length}  ${inmix.getSourceLines.mkString(" :: ")}")
 
   def activateAudioLine() = {
     sourceLine.open()

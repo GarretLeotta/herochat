@@ -2,6 +2,7 @@ package herochat.actors
 
 import scala.annotation.tailrec
 import scala.language.postfixOps
+import scala.collection.mutable.Buffer
 import scala.concurrent.duration._
 import scala.math.{max}
 import scala.util.{Try,Success,Failure}
@@ -136,18 +137,26 @@ class PeerActor(
       log.debug(s"Handshake complete, entering dynamic state")
       become(dynamicReceive)
       savedPeerState.foreach{ x: Peer => peerState = Some(combineSavedAndNewState(x, peerState.get)) }
-
+      //send any stored messages from race-condition state
+      if (!handshake_race_msgs.isEmpty) {
+        log.debug(s"Resending ${handshake_race_msgs.length} messages")
+        handshake_race_msgs.foreach{case (orig_sender, msg) => self.tell(msg, orig_sender)}
+      }
       parent ! PeerState.NewPeer(peerState.get)
     case HandshakeTimeout =>
       log.debug(s"Handshake timed out, disconnecting from remote host")
       self ! Disconnect
-    case msg: ConnectionClosed =>
-      log.debug(s"connection closed by remote peer, unshook: $msg")
-      context stop self
     case Disconnect =>
       log.debug(s"unshook, disconnecting from $remoteAddress")
       socket ! Close
       context stop self
+    /*
+    case Aborted => () //Aborted in response to Abort
+    case Closed => () //Normal close in response to Close
+    case ConfirmedClosed => () //Closed in response to ConfirmedClosed (sent to both)
+    case ErrorClosed => () // IO ERROR
+    case PeerClosed => () // Closed our half of connection
+    */
   }
 
   /* Parses a Authentication message payload
@@ -182,6 +191,9 @@ class PeerActor(
       //Peer does not complete handshake until it receives signoff from BigBoss
       //handles a race condition where two peers connect to eachother at nearly the same time
       parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
+      /* Store messages received until BigBoss responds with HandshakeComplete. Handles a race
+       * condition where this Peer receives a Pex message before handshake fully completes */
+      become(handshakeStorage)
   })
   /* Wait for auth message from remote host; handshake is complete when received*/
   val handshakeReceiveAuthHandler = new HcMessageHandler(0, {
@@ -190,6 +202,7 @@ class PeerActor(
       parseAuthPayload(decPayload)
       log.debug(s"Received Handshake auth message: $decPayload, handshake complete")
       parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
+      become(handshakeStorage)
   })
 
   /* Handshake State, performing handhsake with other peer
@@ -226,9 +239,19 @@ class PeerActor(
       exhaustiveDecode(BitVector(bytes), hcMessage,
         (handshakeReceiveAuthHandler orElse
         handshakeDisconnectHandler orElse
-        defaultHandler("handshake-recipro"))
+        defaultHandler("handshake-receive"))
       )
     case _ @ msg => log.debug(s"handshake-receive: Bad Msg: $msg, $sender")
+  }
+  //Store messages, then send out after handshake complete
+  /* TODO: this could be exploited to store a bunch of messages and use a lot of memory.
+   * In general, need to prevent exploitation by bad actors. */
+  var handshake_race_msgs = Buffer[Tuple2[ActorRef, Any]]()
+  def handshakeStorage: Receive = basicPreShookReceive orElse {
+    case msg @ Received(bytes) =>
+      log.debug(s"Storing message")
+      handshake_race_msgs += ((sender, msg))
+    case _ @ msg => log.debug(s"handshake-recipro: Bad Msg: $msg, $sender")
   }
 
   /* Post-Handshake State */
@@ -332,6 +355,7 @@ class PeerActor(
       context stop self
     case Disconnect =>
       log.debug(s"shook, disconnecting from $remoteAddress")
+      //sendHcMessage(HcMessage(MsgTypePing, 0, hex""))
       socket ! Close
       parent ! PeerState.RemovePeer(peerState.get)
       context stop self
@@ -339,7 +363,11 @@ class PeerActor(
       if (hcMsg.msgType == MsgTypeAudio && hcMsg.data.bits(7)) {
         log.debug("sending end of segment message")
       }
-      socket ! Write(ByteString(Codec.encode(hcMsg).require.toByteArray))
+      sendHcMessage(hcMsg)
+  }
+
+  def sendHcMessage(hcMsg: HcMessage): Unit = {
+    socket ! Write(ByteString(Codec.encode(hcMsg).require.toByteArray))
   }
 
   val dynMute = scala.collection.mutable.SortedSet[HcMessageHandler](textHandler, muteAudioHandler, pexHandler, defaultHandler("dynamic"))

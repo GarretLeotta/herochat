@@ -10,25 +10,8 @@ import scalafx.scene.text.{Font, FontWeight, Text}
 
 
 class TitlePane(implicit val viewActor: ActorRef) {
-
-
-  val content = new TilePane {
-    snapToPixel = false
-    children = List(
-      new StackPane {
-        style = "-fx-background-color: black"
-        children = new Text("Hero") {
-          font = Font.font(null, FontWeight.Bold, 18)
-          fill = Color.White
-          alignmentInParent = Pos.CenterRight
-        }
-      },
-      new Text("Chat") {
-        font = Font.font(null, FontWeight.Bold, 18)
-        alignmentInParent = Pos.CenterLeft
-      },
-    )
-    prefTileHeight = 40
-    prefTileWidth <== parent.selectDouble("width") / 2
+  val content = new Text("Herochat") {
+    font = Font.font(null, FontWeight.Bold, 20)
+    alignmentInParent = Pos.CenterLeft
   }
 }

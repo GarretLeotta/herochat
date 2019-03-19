@@ -40,7 +40,7 @@ class SnakeController(
   }
 
   var settings = herochat.Settings.readSettingsFile(settingsFilename)
-  log.debug(s"settings from json: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
+  //log.debug(s"settings from json: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
 
   val model = context.actorOf(BigBoss.props(settings, recordAudio, settingsFilename), "bigboss")
   val view = context.actorOf(HcView.props(settings), "herochat-view")
@@ -81,7 +81,7 @@ class FakeController(
   }
 
   var settings = herochat.Settings.readSettingsFile(settingsFilename)
-  log.debug(s"settings from json: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
+  //log.debug(s"settings from json: ${settings.soundSettings}, ${settings.userSettings}, ${settings.peerSettings}")
 
   val model = context.actorOf(BigBoss.props(settings, recordAudio, settingsFilename), "bigboss")
 

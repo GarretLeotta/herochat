@@ -6,10 +6,16 @@ pattern = 'date time thread level actor message'
 
 actor_patterns = {
     'akka://herochat/user/hcController/bigboss': 'bigboss0.actor.log',
-    'akka://herochat/user/bigbosst1': 'bigboss1.actor.log',
-    'akka://herochat/user/bigbosst2': 'bigboss2.actor.log',
-    'akka://herochat/user/bigbosst3': 'bigboss3.actor.log',
-    'akka://herochat/user/bigbosst4': 'bigboss4.actor.log',
+    'akka://herochat/user/fakeCtrl1/bigboss': 'bigboss1.actor.log',
+    'akka://herochat/user/fakeCtrl2/bigboss': 'bigboss2.actor.log',
+    'akka://herochat/user/fakeCtrl3/bigboss': 'bigboss3.actor.log',
+    'akka://herochat/user/fakeCtrl4/bigboss': 'bigboss4.actor.log',
+    'akka://herochat/user/fakeCtrl5/bigboss': 'bigboss5.actor.log',
+    'akka://herochat/user/fakeCtrl6/bigboss': 'bigboss6.actor.log',
+    'akka://herochat/user/fakeCtrl7/bigboss': 'bigboss7.actor.log',
+    'akka://herochat/user/fakeCtrl8/bigboss': 'bigboss8.actor.log',
+    'akka://herochat/user/fakeCtrl9/bigboss': 'bigboss9.actor.log',
+    'akka://herochat/user/fakeCtrl10/bigboss': 'bigboss10.actor.log',
 }
 
 outfiles = {}

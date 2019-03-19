@@ -1,3 +1,8 @@
+PRESSING PROBLEMS
+  add reconnect - more complicated than initially thought, might want to use confirmclose?
+  sometimes we get PEX before the handlers are set up:
+    Received HcMessage of unknown type: 31
+
 SETTINGS FILE
   create a settings file in appdata, (cross-platform)
   create it on startup with defaults
@@ -18,7 +23,6 @@ ENCRYPTION
   TLS
   OCB-AES128 for encrypted voice comms
 
-
 PROBLEM:
 PlayQueue & Recorder actors pretty much block up a thread in the javax write function.
 Does this only happen while playing audio?
@@ -27,6 +31,11 @@ Need to run benchmarks:
   lot of inactive peers
   lot of peers talking at once
 
+PERFORMANCE STUFF:
+  Rudimentary measurements/findings:
+    Moving the volume knob around spikes CPU usage a little bit, need to optimize that
+    10 idle peers is no problem, when I speak (that is 1 record, 9 playback) cpu usage goes up.
+    Memory usage is on par with other apps
 
 Should BigBoss hold a record of messages received - probably
 Need to think more about how this works, replay and all that

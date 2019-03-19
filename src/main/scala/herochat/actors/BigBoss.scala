@@ -88,8 +88,7 @@ object BigBoss {
 
   case object GetJoinLink
 
-  case class DebugInMixerIndex(index: Int)
-  case class DebugOutMixerIndex(index: Int)
+  case object DebugPrintConnectedPeers
   //Log Decoded audio
   //case class StartLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
   //case class StopLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
@@ -160,6 +159,7 @@ class BigBoss(
   }
 
   override def postStop {
+    log.debug("write settings due to postStop")
     settings.writeSettingsFile(settingsFilename)
   }
 
@@ -227,7 +227,7 @@ class BigBoss(
    */
   def sendPexMessage(newPeer: ActorRef): Unit = {
     val pexAddresses = peerTable.shookPeers.map(x => (ByteVector(x._6.getAddress.getAddress), x._6.getPort))
-    log.debug(s"sending PEX to peers: ${pexAddresses}")
+    log.debug(s"sending PEX to peer ($newPeer): ${pexAddresses}")
     pex6PayloadCodec.encode(pexAddresses.toVector) match {
       case Attempt.Successful(ipList) =>
         val ipListInBytes = ipList.bytes
@@ -360,6 +360,7 @@ class BigBoss(
     /* Write to settings file, so that Peer settings are correct if/when peer reconnects
      * Forward RemovePeer messages to controller. */
     case msg: PeerState.RemovePeer =>
+      log.debug(s"write settings due to remove Peer: $msg")
       settings.writeSettingsFile(settingsFilename)
       parent ! ToView(msg)
     /* Update Settings file with new peers and updates to peers  */
@@ -478,6 +479,7 @@ class BigBoss(
       }
 
     case BigBoss.SaveSettings =>
+      log.debug("write settings due to SaveSettings")
       settings.writeSettingsFile(settingsFilename)
 
     case BigBoss.GetJoinLink =>
@@ -510,15 +512,9 @@ class BigBoss(
     case BigBoss.RecordAudioFile(filename, filetype) =>
       ()
 
+    case BigBoss.DebugPrintConnectedPeers =>
+      log.debug(s"Connected Peers: ${peerTable.shookPeers.map(_._6)}")
 
-    case BigBoss.DebugInMixerIndex(index) =>
-      val targetMixers = AudioUtils.getSupportedMixers(targetInfo).map(_.getMixerInfo)
-      self ! BigBoss.SetInputMixer(targetMixers(index))
-      log.debug(s"Changing input mixer to index $index: ${targetMixers(index)}")
-    case BigBoss.DebugOutMixerIndex(index) =>
-      val sourceMixers = AudioUtils.getSupportedMixers(sourceInfo).map(_.getMixerInfo)
-      self ! BigBoss.SetOutputMixer(sourceMixers(index))
-      log.debug(s"Changing output mixer to index $index: ${sourceMixers(index)}")
     case _ @ msg => log.debug(s"Bad Msg: $msg")
   }
 }

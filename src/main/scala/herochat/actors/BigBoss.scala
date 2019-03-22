@@ -14,7 +14,7 @@ import akka.pattern.ask
 
 import javax.sound.sampled.AudioFormat
 
-import java.net.{InetAddress, InetSocketAddress, NetworkInterface}
+import java.net.{InetAddress, Inet6Address, InetSocketAddress, NetworkInterface}
 import java.io.{FileOutputStream}
 import java.time.{Instant}
 import java.time.temporal.{ChronoUnit}
@@ -226,17 +226,11 @@ class BigBoss(
   /* Only send Pex messages to the newly connected peer
    */
   def sendPexMessage(newPeer: ActorRef): Unit = {
-    val pexAddresses = peerTable.shookPeers.map(x => (ByteVector(x._6.getAddress.getAddress), x._6.getPort))
+    val pexAddresses = peerTable.shookPeers.map(x => (x._6.getAddress.asInstanceOf[Inet6Address], x._6.getPort))
     log.debug(s"sending PEX to peer ($newPeer): ${pexAddresses}")
-    pex6PayloadCodec.encode(pexAddresses.toVector) match {
-      case Attempt.Successful(ipList) =>
-        val ipListInBytes = ipList.bytes
-        val pexMsg = HcMessage(MsgTypePex6, ipListInBytes.length.toInt, ipListInBytes)
-        newPeer ! pexMsg
-      case x => log.debug(s"Pex Encoding Failure: $x")
-    }
-
+    newPeer ! HcPex6Message(pexAddresses.toVector)
   }
+
   def completeHandshake(remoteAddr: InetSocketAddress, peerRef: ActorRef, remoteUUID: UUID, pexAddr: InetSocketAddress): Unit = {
     log.debug(s"Completing Handshake for: $remoteAddr, $remoteUUID, $peerRef, $pexAddr")
     peerRef ! PeerActor.HandshakeComplete(settings.peerSettings.get(remoteUUID))
@@ -265,7 +259,7 @@ class BigBoss(
       //check that this peer isn't ourselves, and that we aren't already connected to it
       if (!peerTable.preShakeVerify(remoteAddress, listenAddress)) {
         log.debug(s"Duplicate/Self-connected peer incoming: $remoteAddress -> $localAddress")
-        socketRef ! Write(ByteString(HcDisconnect.toByteArray))
+        socketRef ! Write(ByteString(Codec[HcMessage].encode(HcShakeDisconnectMessage).require.toByteArray))
       } else {
         log.debug(s"Creating Peer actor: $remoteAddress -> $localAddress")
         val peerRef = context.actorOf(PeerActor.props(remoteAddress, socketRef, PeerActor.HandshakeReceiver, localPeerState, listenAddress), "hc-peer-in-" + genPeerName(remoteAddress))
@@ -371,15 +365,8 @@ class BigBoss(
     //public chat commands
     case BigBoss.Shout(msg) =>
       log.debug(s"Sending msgs to: ${peerTable.shookPeers}")
-      utf8.encode(msg) match {
-        case Attempt.Successful(utf8Bits) =>
-          val utf8Bytes = utf8Bits.bytes
-          val hcMsg = HcMessage(MsgTypeText, utf8Bytes.length.toInt, utf8Bytes)
-          peerTable.shookPeers.foreach(peer => peer._2 ! hcMsg)
-          self ! BigBoss.ReceivedMessage(localPeerState.id, msg)
-        case x =>
-          log.debug(s"Failed encoding Message to utf8: $msg, $x")
-      }
+      peerTable.shookPeers.foreach(peer => peer._2 ! HcTextMessage(Instant.now, msg))
+      self ! BigBoss.ReceivedMessage(localPeerState.id, msg)
 
     //Received a chat message
     case msg: BigBoss.ReceivedMessage => parent ! ToView(msg)
@@ -399,18 +386,7 @@ class BigBoss(
       if (uuid == localPeerState.id) {
         log.debug(s"Changing $uuid nickname to $newName")
         updateUserSettings(localPeerState.copy(nickname = newName))
-
-        /* TODO: abstract this encode stuff
-         * TODO: is it wise to have this stuff in bigboss?? maybe put this code in protocol
-         */
-        utf8.encode(newName) match {
-          case Attempt.Successful(utf8Bits) =>
-            val utf8Bytes = utf8Bits.bytes
-            val hcMsg = HcMessage(MsgTypeChangeNickname, utf8Bytes.length.toInt, utf8Bytes)
-            peerTable.shookPeers.foreach(_._2 ! hcMsg)
-          case x =>
-            log.debug(s"Failed encoding new nickname to utf8: $newName, $x")
-        }
+        peerTable.shookPeers.foreach(_._2 ! HcChangeNicknameMessage(newName))
       }
     case BigBoss.SetMuteUser(uuid, setMute) =>
       peerTable.getShookByUUID(uuid) match {

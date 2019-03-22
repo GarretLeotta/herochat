@@ -38,20 +38,12 @@ class Encoder(sampleLenMillis: Int, sampleRate: SampleFrequency, nChannels: Int)
     if (endOfSegment) log.debug(s"encoding endOfSegment")
     enc(buf) match {
       case Success(enc_frame: Array[Byte]) =>
-        Codec.encode(AudioData(AudioEncoding.Opus, endOfSegment, ByteVector(enc_frame))) match {
-          case Attempt.Successful(opusBits) =>
-            val opusBytes = opusBits.bytes
-            val hcMsg = HcMessage(MsgTypeAudio, opusBytes.length.toInt, opusBytes)
-            subscribers.foreach(sub => sub ! hcMsg)
-          case x => log.debug(s"Error Encoding Audio: $x, ${buf.length}, $endOfSegment")
-        }
+        subscribers.foreach(sub => sub ! HcAudioMessage(AudioData(AudioEncoding.Opus, endOfSegment, ByteVector(enc_frame))))
       case Failure(f) =>
         log.debug(s"Opus encoding error: $f, $endOfSegment, ${buf.length}, $nShorts")
         /* It is important to send EndOfSegment messages. If opus encoding fails, send an empty frame */
         if (endOfSegment) {
-          val emptyFrame = Codec.encode(AudioData(AudioEncoding.Opus, endOfSegment, ByteVector.empty)).require.bytes
-          val hcMsg = HcMessage(MsgTypeAudio, emptyFrame.length.toInt, emptyFrame)
-          subscribers.foreach(sub => sub ! hcMsg)
+          subscribers.foreach(sub => sub ! HcAudioMessage(AudioData(AudioEncoding.Opus, endOfSegment, ByteVector.empty)))
         }
     }
   }

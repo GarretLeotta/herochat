@@ -4,7 +4,11 @@ import scala.collection.JavaConverters._
 
 import scodec.bits._
 
-import java.net.{InetAddress, InetSocketAddress, NetworkInterface}
+import java.net.{InetAddress, Inet4Address, Inet6Address, InetSocketAddress, NetworkInterface}
+
+
+import GCodecs.{inet4Address, inet6Address}
+import scodec.codecs.{uint16, vector}
 
 object Tracker {
   val base64Alphabet = Bases.Alphabets.Base64Url
@@ -37,16 +41,14 @@ object Tracker {
    * TODO: make a scodec?
    * TODO: scodec conditional on length?
    */
-  def encode_ip_to_url(ip: InetSocketAddress): Option[String] = {
-    val byteAddr = ip.getAddress.getAddress
-    if (byteAddr.length == 4) {
-      val encodedIP = HcCodec.ipv4Codec.encode((ByteVector(byteAddr), ip.getPort)).require
-      Option(encodedIP.toBase64(base64Alphabet))
-    } else if (byteAddr.length == 16) {
-      val encodedIP = HcCodec.ipv6Codec.encode((ByteVector(byteAddr), ip.getPort)).require
-      Option(encodedIP.toBase64(base64Alphabet))
-    } else {
-      None
+  def encode_ip_to_url(ipPort: InetSocketAddress): Option[String] = {
+    ipPort.getAddress match {
+      case address: Inet4Address =>
+        Option(inet4Address.encode(address).require.toBase64(base64Alphabet))
+      case address: Inet6Address =>
+        Option(inet6Address.encode(address).require.toBase64(base64Alphabet))
+      case _ =>
+        None
     }
   }
 
@@ -54,11 +56,11 @@ object Tracker {
     BitVector.fromBase64(url, base64Alphabet) match {
       case Some(encodedIP) =>
         if (encodedIP.size == 48) {
-          val (byteAddr, port) = HcCodec.ipv4Codec.decode(encodedIP).require.value
-          Option(new InetSocketAddress(InetAddress.getByAddress(byteAddr.toArray), port))
+          val (address, port) = (inet4Address ~~ uint16).decode(encodedIP).require.value
+          Option(new InetSocketAddress(address, port))
         } else if (encodedIP.size == 144) {
-          val (byteAddr, port) = HcCodec.ipv6Codec.decode(encodedIP).require.value
-          Option(new InetSocketAddress(InetAddress.getByAddress(byteAddr.toArray), port))
+          val (address, port) = (inet6Address ~~ uint16).decode(encodedIP).require.value
+          Option(new InetSocketAddress(address, port))
         } else {
           None
         }

@@ -39,7 +39,7 @@ object GCodecs {
 
 /**
  */
-object NewHcCodec {
+object HcCodec {
   import GCodecs._
 
   sealed trait HcMessage
@@ -69,6 +69,8 @@ object NewHcCodec {
     ("timestamp" | instant) ::
     ("content"   | utf8).hlist
   }.as[HcTextMessage]
+  case class HcAudioMessage(audio: AudioData) extends HcMessage
+  implicit val hcAudioMessage: Codec[HcAudioMessage] = Codec[AudioData].as[HcAudioMessage]
 
 
   /* TODO: consistent nomenclature */
@@ -81,8 +83,7 @@ object NewHcCodec {
 
   val MsgTypePex4 = 30
   val MsgTypePex6 = 31
-
-  /* TODO: */
+  
   val MsgTypeRequestAudio = 410
   val MsgTypeRefuseAudio = 411
   val MsgTypeRequestPex = 420
@@ -104,7 +105,7 @@ object NewHcCodec {
   implicit val hcPayloadDiscriminated: Discriminated[HcMessage, Int] = Discriminated[HcMessage, Int](typeCodec, new CodecTransformation {
     def apply[X](c: Codec[X]) = variableSizeBytes(lengthCodec, c)
   })
-  
+
   type HcDiscriminator[X] = Discriminator[HcMessage, X, Int]
   implicit val hcAuthDiscriminator: HcDiscriminator[HcAuthMessage] = Discriminator(MsgTypeShakeAuth)
   implicit val hcShakeDisconnectDiscriminator: HcDiscriminator[HcShakeDisconnectMessage.type] = Discriminator(MsgTypeShakeDisconnect)
@@ -112,81 +113,9 @@ object NewHcCodec {
   implicit val hcPex6Discriminator: HcDiscriminator[HcPex6Message] = Discriminator(MsgTypePex6)
   implicit val hcChangeNicknameDiscriminator: HcDiscriminator[HcChangeNicknameMessage] = Discriminator(MsgTypeChangeNickname)
   implicit val hcTextDiscriminator: HcDiscriminator[HcTextMessage] = Discriminator(MsgTypeText)
+  implicit val hcAudioDiscriminator: HcDiscriminator[HcAudioMessage] = Discriminator(MsgTypeAudio)
 }
 
-
-/**
- * TODO: DEPRECATED
- */
-object HcCodec {
-  //Basic Protocol description
-
-  sealed trait HcPayload
-  //case class AuthPayloadWithLobby(uuid: UUID, nickname: String, port: Int, lobbyId: UUID) extends HcPayload
-  case class NewAuthPayload(uuid: UUID, port: Int, nickname: String) extends HcPayload
-  implicit val newAuthPayload: Codec[NewAuthPayload] = {
-    ("uuid"     | uuid) ::
-    ("port"     | uint16) ::
-    //max nickname size is 255
-    ("nickname" | variableSizeBytes(uint8, utf8)).hlist
-  }.as[NewAuthPayload]
-
-  case class HcMessage(msgType: Int, msgLength: Int, data: ByteVector)
-
-  /* TODO: type and length are Big endian right now, should they be little endian? */
-  implicit val hcMessage: Codec[HcMessage] = {
-    ("type"     | uint16) ::
-    (("length"  | uint16) >>:~ { length =>
-    ("message"  | bytes(length)).hlist
-  })}.as[HcMessage]
-
-  //Why are we self-reporting the port?
-  def HCAuthMessage(uuid: UUID, nickname: String, port: Int) = {
-    val authPayload = List(AuthPayload.AuthTypeUUID(uuid),
-                          AuthPayload.AuthTypeNickname(nickname),
-                          AuthPayload.AuthTypePort(port)).
-      foldLeft(hex"")((x,y) => x ++ AuthPayload.codec.encode(Right(y)).require.bytes)
-    /* DEBUG: fuck with the bytes to simulate an unrecognized authType */
-    //val debugLoad = authPayload.dropRight(4) ++ hex"07020014"
-    //println(s"authPayload: $authPayload")
-    //HcMessage(MsgTypeShakeAuth, authPayload.length.toInt, debugLoad)
-    HcMessage(MsgTypeShakeAuth, authPayload.length.toInt, authPayload)
-  }
-
-  val ipv4Codec: TupleCodec[ByteVector, Int] = bytes(4) ~~ uint16
-  val ipv6Codec: TupleCodec[ByteVector, Int] = bytes(16) ~~ uint16
-
-  val pex4PayloadCodec: Codec[Vector[(ByteVector, Int)]] = vector(ipv4Codec).complete
-  val pex6PayloadCodec: Codec[Vector[(ByteVector, Int)]] = vector(ipv6Codec).complete
-
-  /* TODO: consistent nomenclature */
-  val MsgTypeVersion = 0
-
-  val MsgTypeShakeAuth = 10
-  val MsgTypeShakeDisconnect = 11
-
-  val MsgTypePing = 2
-
-  val MsgTypePex4 = 30
-  val MsgTypePex6 = 31
-
-  /* TODO: */
-  val MsgTypeRequestAudio = 410
-  val MsgTypeRefuseAudio = 411
-  val MsgTypeRequestPex = 420
-  val MsgTypeRefusePex = 421
-
-  val MsgTypeLobbyInfo = 5
-
-  val MsgTypeChangeNickname = 610
-
-  val MsgTypeText = 8
-
-  val MsgTypeAudio = 9
-
-  /* Constant Messages */
-  val HcDisconnect = Codec.encode(HcMessage(MsgTypeShakeDisconnect, 0, hex"")).require
-}
 
 /* Different kinds of audio encodings, how to handle them?? */
 object AudioEncoding {
@@ -207,60 +136,4 @@ object AudioData {
     ("endOfSegment" | bool) ::
     ("data" | bytes).hlist
   }.as[AudioData]
-}
-
-
-/* Good example of TLV encoding, but not necessary for Authenticate message
- */
-object AuthPayload {
-  val tUUID = 0
-  val tLobbyName = 1
-  val tNickname = 2
-  val tPort = 3
-
-  type AuthPair = Either[UnrecognizedType, AuthType]
-
-  sealed trait AuthType
-  case class AuthTypeUUID(uuid: UUID) extends AuthType
-  case class AuthTypeLobbyName(lobbyName: String) extends AuthType
-  case class AuthTypeNickname(nickname: String) extends AuthType
-  case class AuthTypePort(port: Int) extends AuthType
-
-  case class UnrecognizedType(authType: Int, data: BitVector)
-
-  implicit val uuidCodec: Codec[AuthTypeUUID] = uuid.as[AuthTypeUUID]
-  implicit val lobbyNameCodec: Codec[AuthTypeLobbyName] = utf8.as[AuthTypeLobbyName]
-  implicit val nicknameCodec: Codec[AuthTypeNickname] = utf8.as[AuthTypeNickname]
-  implicit val portCodec: Codec[AuthTypePort] = uint16.as[AuthTypePort]
-  implicit val unrecognizedCodec: Codec[UnrecognizedType] = (uint8 :: variableSizeBytes(uint8, bits)).as[UnrecognizedType]
-
-  implicit val authTypeDiscriminated: Discriminated[AuthType, Int] = Discriminated[AuthType, Int](uint8, new CodecTransformation {
-    def apply[X](c: Codec[X]) = variableSizeBytes(uint8, c)
-  })
-  implicit val t: Discriminator[AuthType, AuthTypeUUID, Int] = Discriminator(tUUID)
-  implicit val lobbyNameDiscriminator: Discriminator[AuthType, AuthTypeLobbyName, Int] = Discriminator(tLobbyName)
-  implicit val nicknameDiscriminator: Discriminator[AuthType, AuthTypeNickname, Int] = Discriminator(tNickname)
-  implicit val portDiscriminator: Discriminator[AuthType, AuthTypePort, Int] = Discriminator(tPort)
-
-  val codec: Codec[AuthPair] = discriminatorFallback(unrecognizedCodec, Codec[AuthType])
-  val vecCodec: Codec[Vector[AuthPair]] = vector(codec).complete
-
-  /* probably want to make a class with this as a method, but w/e man
-     Also, its kind of shitty that we have this big case statement, basically doubling up logic
-     Don't know a way to use scodec to create a map-like structure
-     This is a useless method
-  */
-  def toMap(payload: Vector[AuthPair]) = {
-    payload.foldLeft(Map.empty[Int, AuthPair]) ((x,y) =>
-      x + (y match {
-        case Right(x) => x match {
-          case AuthTypeUUID(_) => (tUUID -> Right(x))
-          case AuthTypeLobbyName(_) => (tLobbyName -> Right(x))
-          case AuthTypeNickname(_) => (tNickname -> Right(x))
-          case AuthTypePort(_) => (tPort -> Right(x))
-        }
-        case Left(UnrecognizedType(authType, bv)) => (authType -> Left(UnrecognizedType(authType, bv)))
-      })
-    )
-  }
 }

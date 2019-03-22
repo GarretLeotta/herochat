@@ -22,7 +22,7 @@ import scodec._
 import scodec.bits._
 import scodec.codecs._
 
-import herochat.{AuthPayload, Peer, PeerState, AudioEncoding, AudioData, AudioControl}
+import herochat.{Peer, PeerState, AudioEncoding, AudioData, AudioControl}
 import herochat.HcCodec._
 
 
@@ -159,35 +159,23 @@ class PeerActor(
     */
   }
 
-  /* Parses a Authentication message payload
-   * Assigns the user and port encoded in packet to remoteUser & remoteListeningPort
-   */
-  def parseAuthPayload(payload: Vector[AuthPayload.AuthPair]): Unit = {
-    /* TODO: find a way to avoid the map form, it seems clumsy */
-    val mapForm = AuthPayload.toMap(payload)
-    val id = mapForm(AuthPayload.tUUID).right.get.asInstanceOf[AuthPayload.AuthTypeUUID].uuid
-    val name = mapForm(AuthPayload.tNickname).right.get.asInstanceOf[AuthPayload.AuthTypeNickname].nickname
-    remoteListeningPort = mapForm(AuthPayload.tPort).right.get.asInstanceOf[AuthPayload.AuthTypePort].port
-    /* Default Peer State, BigBoss sends State from file on Handshakecomplete */
-    peerState = Some(Peer(id, name, false, false, false, 1.0))
-  }
-
   /* Handlers for herochat protocol messages related to handshake procedure */
   val handshakeDisconnectHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeShakeDisconnect, msgLength, payload) =>
+    case HcShakeDisconnectMessage =>
       log.debug(s"Received Handshake Disconnect message")
       throw new IllegalArgumentException(s"failed handshake procedure")
   })
   /* TODO: Do these need to be defined separately from the handshake receives, they are only used once */
   /* Wait for auth message from remote host; respond with an auth message*/
   val handshakeReciproAuthHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeShakeAuth, msgLength, payload) =>
-      //decode and validate response from remote host
-      val decPayload = AuthPayload.vecCodec.decode(payload.bits).require.value
-      parseAuthPayload(decPayload)
-      log.debug(s"Received Handshake auth message: $decPayload, sending response")
-      val authPayload = HCAuthMessage(localPeer.id, localPeer.nickname, localPort)
-      socket ! Write(ByteString(Codec.encode(authPayload).require.toByteArray))
+    case HcAuthMessage(uuid, port, nickname) =>
+      remoteListeningPort = port
+      /* Default Peer State, BigBoss sends Mute/Deafened/Volume State from file on Handshakecomplete */
+      peerState = Some(Peer(uuid, nickname, false, false, false, 1.0))
+      log.debug(s"Received Handshake auth message: $uuid, $port, $nickname, sending response")
+      val response = HcAuthMessage(localPeer.id, localPort, localPeer.nickname)
+      socket ! Write(ByteString(Codec[HcMessage].encode(response).require.toByteArray))
+
       //Peer does not complete handshake until it receives signoff from BigBoss
       //handles a race condition where two peers connect to eachother at nearly the same time
       parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
@@ -197,10 +185,11 @@ class PeerActor(
   })
   /* Wait for auth message from remote host; handshake is complete when received*/
   val handshakeReceiveAuthHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeShakeAuth, msgLength, payload) =>
-      val decPayload = AuthPayload.vecCodec.decode(payload.bits).require.value
-      parseAuthPayload(decPayload)
-      log.debug(s"Received Handshake auth message: $decPayload, handshake complete")
+    case HcAuthMessage(uuid, port, nickname) =>
+      remoteListeningPort = port
+      /* Default Peer State, BigBoss sends Mute/Deafened/Volume State from file on Handshakecomplete */
+      peerState = Some(Peer(uuid, nickname, false, false, false, 1.0))
+      log.debug(s"Received Handshake auth message: $uuid, $port, $nickname, handshake complete")
       parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
       become(handshakeStorage)
   })
@@ -217,9 +206,9 @@ class PeerActor(
       log.debug(s"Received Connection response: $remoteAddress, $localAddress")
       sender ! Register(self)
       socket = sender
-      val auth_load = HCAuthMessage(localPeer.id, localPeer.nickname, localPort)
+      val authMsg = HcAuthMessage(localPeer.id, localPort, localPeer.nickname)
+      socket ! Write(ByteString(Codec[HcMessage].encode(authMsg).require.toByteArray))
       become(handshakeReceive)
-      socket ! Write(ByteString(Codec.encode(auth_load).require.toByteArray))
     case CommandFailed(_: Connect) =>
       log.debug(s"failed to connect: $sender")
       context stop self
@@ -227,7 +216,7 @@ class PeerActor(
   }
   def handshakeReciprocate: Receive = basicPreShookReceive orElse {
     case Received(bytes) =>
-      exhaustiveDecode(BitVector(bytes), hcMessage,
+      exhaustiveDecode(BitVector(bytes), Codec[HcMessage],
         (handshakeReciproAuthHandler orElse
         handshakeDisconnectHandler orElse
         defaultHandler("handshake-recipro"))
@@ -236,7 +225,7 @@ class PeerActor(
   }
   def handshakeReceive: Receive = basicPreShookReceive orElse {
     case Received(bytes) =>
-      exhaustiveDecode(BitVector(bytes), hcMessage,
+      exhaustiveDecode(BitVector(bytes), Codec[HcMessage],
         (handshakeReceiveAuthHandler orElse
         handshakeDisconnectHandler orElse
         defaultHandler("handshake-receive"))
@@ -258,46 +247,42 @@ class PeerActor(
 
   //HcMessage handlers
   val textHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeText, msgLength, payload) =>
-      val decoded = utf8.decode(payload.bits).require.value
-      log.debug(s"Received HcText message: ${decoded}")
-      parent ! BigBoss.ReceivedMessage(peerState.get.id, decoded)
+    case HcTextMessage(timestamp, content) =>
+      log.debug(s"Received HcText message: $timestamp, $content")
+      parent ! BigBoss.ReceivedMessage(peerState.get.id, content)
   })
   /* These aren't really play/mute, they are more like forwarding encoded audio or ignoring it.
    * forward is a bad name, need to come up with better terminology
    */
   val playAudioHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeAudio, msgLength, payload) =>
+    case HcAudioMessage(audio) =>
       if (!peerState.get.speaking) {
         updateState(peerState.get.copy(speaking = true))
       }
-      audioSubscribers.foreach(sub => sub ! Codec[AudioData].decode(payload.bits).require.value)
+      audioSubscribers.foreach(sub => sub ! audio)
   })
   val muteAudioHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeAudio, msgLength, payload) => Unit
+    case HcAudioMessage(audio) => Unit
   })
   /* TODO: safe handling, not .require.value */
   val pexHandler = new HcMessageHandler(0, {
     //ip4 - list of (ipv4{32-bit}, port{16-bit})
-    case HcMessage(MsgTypePex4, msgLength, payload) =>
-      val decodedIps = pex4PayloadCodec.decode(payload.bits).require//.value
+    case HcPex4Message(addresses) => Unit
     //ip6 - list of (ipv6{128-bit}, port{16-bit})
-    case HcMessage(MsgTypePex6, msgLength, payload) =>
-      val decodedIps = pex6PayloadCodec.decode(payload.bits).require.value
-      log.debug(s"received pex: ${decodedIps}")
-      decodedIps.foreach((byteAddr: ByteVector, port: Int) =>
-        parent ! BigBoss.Connect(new InetSocketAddress(InetAddress.getByAddress(byteAddr.toArray), port))
+    case HcPex6Message(addresses) =>
+      log.debug(s"received pex: ${addresses}")
+      addresses.foreach((address: InetAddress, port: Int) =>
+        parent ! BigBoss.Connect(new InetSocketAddress(address, port))
       )
   })
   val nicknameHandler = new HcMessageHandler(0, {
-    case HcMessage(MsgTypeChangeNickname, msgLength, payload) =>
-      /* TODO: TODO: */
-      updateState(peerState.get.copy(nickname = utf8.decode(payload.bits).require.value))
+    case HcChangeNicknameMessage(newName) =>
+      updateState(peerState.get.copy(nickname = newName))
   })
   /* Handle unrecognized HcMessages, at lowest possible priority */
   val defaultHandler: String => HcMessageHandler = state => new HcMessageHandler(Int.MaxValue, {
-    case HcMessage(msgType, msgLength, payload) =>
-      log.debug(s"$state: Received HcMessage of unknown type: ${msgType}, dynHandlers: $dynHandlers")
+    case msg: HcMessage =>
+      log.debug(s"$state: Received HcMessage of unknown type: $msg, dynHandlers: $dynHandlers")
   })
 
   //Default Post-Handshake Receive function
@@ -360,14 +345,11 @@ class PeerActor(
       parent ! PeerState.RemovePeer(peerState.get)
       context stop self
     case hcMsg: HcMessage =>
-      if (hcMsg.msgType == MsgTypeAudio && hcMsg.data.bits(7)) {
-        log.debug("sending end of segment message")
-      }
       sendHcMessage(hcMsg)
   }
 
   def sendHcMessage(hcMsg: HcMessage): Unit = {
-    socket ! Write(ByteString(Codec.encode(hcMsg).require.toByteArray))
+    socket ! Write(ByteString(Codec[HcMessage].encode(hcMsg).require.toByteArray))
   }
 
   val dynMute = scala.collection.mutable.SortedSet[HcMessageHandler](textHandler, muteAudioHandler, pexHandler, defaultHandler("dynamic"))
@@ -397,7 +379,7 @@ class PeerActor(
     basicShookReceive orElse {
       case Received(bytes) =>
         val f = dynHandlers.foldLeft(Map.empty: PartialFunction[HcMessage, Unit])((x, y) => x orElse y)
-        exhaustiveDecode(BitVector(bytes), hcMessage, f)
+        exhaustiveDecode(BitVector(bytes), Codec[HcMessage], f)
       //would rather this be in a generic function, but anonymous function orElse isn't working
       case _ @ msg =>
         log.debug(s"dynamic, got unhandled message: ${msg.toString}")

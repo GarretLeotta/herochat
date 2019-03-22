@@ -5,6 +5,7 @@
 
 
 .ensime_cache
+.ensime
 /certs
 /test_data
 /logs

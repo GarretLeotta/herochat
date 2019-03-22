@@ -77,7 +77,7 @@ class OptionsAudioPane(settings: Settings)(implicit val viewActor: ActorRef) ext
   }
 
   children = Array(
-    new Text("Audio Settings") {
+    new Label("Audio Settings") {
       font = Font.font(null, FontWeight.Bold, 18)
       alignmentInParent = Pos.CenterLeft
     },

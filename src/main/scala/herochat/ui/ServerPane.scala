@@ -5,7 +5,7 @@ import akka.actor.{ActorRef}
 import scalafx.Includes._
 import scalafx.collections.ObservableBuffer
 import scalafx.geometry.Pos
-import scalafx.scene.control.{ListCell, ListView}
+import scalafx.scene.control.{Label, ListCell, ListView}
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.{VBox, FlowPane}
 import scalafx.scene.text.{Font, FontWeight, Text}
@@ -13,7 +13,7 @@ import scalafx.scene.text.{Font, FontWeight, Text}
 import herochat.Peer
 
 class ServerPane(var users: ObservableBuffer[Peer])(implicit val viewActor: ActorRef) {
-  val title = new Text("\"Server\"") {
+  val title = new Label("\"Server\"") {
     font = Font.font(null, FontWeight.Bold, 12)
     alignmentInParent = Pos.Center
   }

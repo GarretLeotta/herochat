@@ -7,7 +7,7 @@ import scalafx.beans.property.{ObjectProperty, StringProperty}
 import scalafx.collections.ObservableBuffer
 import scalafx.geometry.{Pos, Insets}
 import scalafx.scene.Scene
-import scalafx.scene.control.{ButtonBar, Button, TextField}
+import scalafx.scene.control.{Label, ButtonBar, Button, TextField}
 import scalafx.scene.input.{Clipboard, ClipboardContent}
 import scalafx.scene.text.{Font, FontWeight, Text}
 import scalafx.scene.layout.{HBox, VBox}
@@ -64,7 +64,7 @@ class TestButtonPane(
             spacing = 10
             padding = Insets(20)
             children = Array(
-              new Text("Give this link to your buddies"),
+              new Label("Give this link to your buddies"),
               new HBox {
                 spacing = 10
                 children = Array(

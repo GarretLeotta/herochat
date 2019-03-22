@@ -11,11 +11,11 @@ import java.time.{Instant}
 import java.util.UUID
 
 object PeerTable {
-  /* RemoteAddress, ActorRef, IsLocalInit, TimeStarted
+  /* RemoteAddress, ActorRef, IsLocalInit, TimeConnected
    * PK: ActorRef
    */
   type PreShakePeer = Tuple4[InetSocketAddress, ActorRef, Boolean, Instant]
-  /* RemoteAddress, ActorRef, IsLocalInit, TimeStarted, remoteUUID, RemotePexAddress
+  /* RemoteAddress, ActorRef, IsLocalInit, TimeConnected, remoteUUID, RemotePexAddress
    * Unique identifiers: ActorRef, remoteUUID
    */
   type PostShakePeer = Tuple6[InetSocketAddress, ActorRef, Boolean, Instant, UUID, InetSocketAddress]

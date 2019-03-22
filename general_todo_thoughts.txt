@@ -1,7 +1,5 @@
 PRESSING PROBLEMS
   add reconnect - more complicated than initially thought, might want to use confirmclose?
-  sometimes we get PEX before the handlers are set up:
-    Received HcMessage of unknown type: 31
 
 SETTINGS FILE
   create a settings file in appdata, (cross-platform)
@@ -31,6 +29,10 @@ Need to run benchmarks:
   lot of inactive peers
   lot of peers talking at once
 
+HAD THE END-SEGMENT BUG HAPPEN AGAIN:
+  Little bits of audio kept playing after stopped talking. Not sure what the cause was.
+  Not sure how to reproduce
+
 PERFORMANCE STUFF:
   Rudimentary measurements/findings:
     Moving the volume knob around spikes CPU usage a little bit, need to optimize that
@@ -58,8 +60,9 @@ Enhance file reading/writing features
 
 NOISE REDUCTION
   RNNoise
-    uses machine learning to reduce noise, supposedly fast
-    available in C under BSD license
+    doesn't work well, weird artifacts when I start talking + elsewhere.
+    Probably want to go for a simple solution, collect data
+  SpeexDSP - already linked to it anyway
 
 
 Should clear play buffers if we haven't received any audio in bufferSizeInSeconds or so

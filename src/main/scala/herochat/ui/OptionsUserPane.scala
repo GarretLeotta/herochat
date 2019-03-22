@@ -9,7 +9,7 @@ import scalafx.geometry.{Pos, HPos, Insets}
 import scalafx.scene.Node
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.{VBox, HBox}
-import scalafx.scene.control.{Button, TextField}
+import scalafx.scene.control.{Label, Button, TextField}
 import scalafx.scene.text.{Font, FontWeight, Text}
 
 import javafx.event.ActionEvent
@@ -25,11 +25,11 @@ class OptionsUserPane(var localPeer: ObjectProperty[Peer])(implicit val viewActo
   spacing = 10
   padding = Insets(20)
   children = Array(
-    new Text("Me") {
+    new Label("Me") {
       font = Font.font(null, FontWeight.Bold, 18)
       alignmentInParent = Pos.CenterLeft
     },
-    new Text("Nickname: "),
+    new Label("Nickname: "),
     new HBox {
       //style = "-fx-background-color: lightgreen"
       spacing = 10
@@ -39,7 +39,7 @@ class OptionsUserPane(var localPeer: ObjectProperty[Peer])(implicit val viewActo
   )
 
   def nicknameForm(): Array[Node] = {
-    val previewText = new Text(localPeer().nickname)
+    val previewText = new Label(localPeer().nickname)
     localPeer.onChange((obsVal, oldVal, newVal) => previewText.text = newVal.nickname)
     val textField = new TextField {
       promptText = "Change Nickname"

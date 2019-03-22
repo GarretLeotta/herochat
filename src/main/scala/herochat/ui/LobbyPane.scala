@@ -8,7 +8,7 @@ import scalafx.Includes._
 import scalafx.beans.property.ObjectProperty
 import scalafx.collections.{ObservableBuffer, ObservableMap}
 import scalafx.geometry.Pos
-import scalafx.scene.control.{ListCell, ListView, ContextMenu, MenuItem, CustomMenuItem, Slider, CheckBox}
+import scalafx.scene.control.{Label, ListCell, ListView, ContextMenu, MenuItem, CustomMenuItem, Slider, CheckBox}
 import scalafx.scene.input.{MouseButton, MouseEvent}
 import scalafx.scene.layout.{VBox, HBox}
 import scalafx.scene.text.{Font, FontWeight, Text}
@@ -27,7 +27,7 @@ class LobbyPane(
     var pmap: ObservableMap[UUID, Peer],
     var localPeer: ObjectProperty[Peer]
   )(implicit val viewActor: ActorRef) {
-  val title = new Text("Lobby") {
+  val title = new Label("Lobby") {
     font = Font.font(null, FontWeight.Bold, 12)
     alignmentInParent = Pos.Center
   }
@@ -79,17 +79,20 @@ class LobbyPane(
    * There is room for a lot of improvement in this system
    */
   def createPeerNode(peerState: Peer): HBox = {
-    val contextMenu = createUserContextMenu(peerState)
+    //val contextMenu = createUserContextMenu(peerState)
     new HBox {
       prefHeight = 20
       spacing = 5
       children = List(
-        new Text(customPeerString(peerState)) {
+        new Label(customPeerString(peerState)) {
+          contextMenu = createUserContextMenu(peerState)
+          /*
           onMouseClicked = { me: MouseEvent => me.button match {
             case MouseButton.Secondary =>
               contextMenu.show(this, me.getScreenX(), me.getScreenY())
             case x => ()
           }}
+          */
         },
         new ImageView(micIconMap(peerState.speaking)) {
           fitHeight = 20
@@ -103,7 +106,7 @@ class LobbyPane(
   def messageMenuItem(label: String, msg: Any): MenuItem = {
     new CustomMenuItem {
       hideOnClick = false
-      content = new Text(label)
+      content = new Label(label)
       onAction = _ => viewActor ! msg
     }
   }
@@ -117,7 +120,7 @@ class LobbyPane(
       content = new HBox {
         spacing = 5
         children = Seq(
-          new Text(label),
+          new Label(label),
           new CheckBox {
             this.selected = startValue
             onAction = (event: ActionEvent) => {

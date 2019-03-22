@@ -51,10 +51,8 @@ libraryDependencies ++= javaFXModules.map( m =>
 */
 
 
-mainClass in (Compile, run) := Some("herochat.MVCAkkaTest")
-//mainClass in (Compile, run) := Some("herochat.TLSServerTest")
-//mainClass in (Compile, run) := Some("herochat.TlsClient")
-//mainClass in (Compile, run) := Some("herochat.Main")
+//mainClass in (Compile, run) := Some("herochat.MVCAkkaTest")
+mainClass in (Compile, run) := Some("herochat.Main")
 
 mainClass in (Compile, packageBin) := Some("herochat.Main")
 mainClass in assembly := Some("herochat.Main")

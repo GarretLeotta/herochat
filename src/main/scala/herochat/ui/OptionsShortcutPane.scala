@@ -120,7 +120,7 @@ class OptionsShortcutPane(
   }
 
   children = Array(
-    new Text("Shortcuts") {
+    new Label("Shortcuts") {
       font = Font.font(null, FontWeight.Bold, 18)
       alignmentInParent = Pos.CenterLeft
     },

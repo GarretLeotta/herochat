@@ -1,5 +1,10 @@
 PRESSING PROBLEMS
   add reconnect - more complicated than initially thought, might want to use confirmclose?
+  test on other computers
+    only compatible with jre8
+
+More dialog info to user, inform them when connection fails
+
 
 SETTINGS FILE
   create a settings file in appdata, (cross-platform)

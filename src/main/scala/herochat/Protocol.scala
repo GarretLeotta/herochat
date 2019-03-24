@@ -54,6 +54,9 @@ object HcCodec {
   }.as[HcAuthMessage]
   case object HcShakeDisconnectMessage extends HcMessage
 
+  case class HcPingMessage(timestamp: Instant) extends HcMessage
+  implicit val hcPingMessage: Codec[HcPingMessage] = instant.as[HcPingMessage]
+
   case class HcPex4Message(addresses: Vector[(Inet4Address, Int)]) extends HcMessage
   implicit val hcPex4Message: Codec[HcPex4Message] =
     vector(inet4Address ~~ uint16).complete.as[HcPex4Message]
@@ -83,7 +86,7 @@ object HcCodec {
 
   val MsgTypePex4 = 30
   val MsgTypePex6 = 31
-  
+
   val MsgTypeRequestAudio = 410
   val MsgTypeRefuseAudio = 411
   val MsgTypeRequestPex = 420
@@ -109,6 +112,7 @@ object HcCodec {
   type HcDiscriminator[X] = Discriminator[HcMessage, X, Int]
   implicit val hcAuthDiscriminator: HcDiscriminator[HcAuthMessage] = Discriminator(MsgTypeShakeAuth)
   implicit val hcShakeDisconnectDiscriminator: HcDiscriminator[HcShakeDisconnectMessage.type] = Discriminator(MsgTypeShakeDisconnect)
+  implicit val HcPingDiscriminator: HcDiscriminator[HcPingMessage] = Discriminator(MsgTypePing)
   implicit val hcPex4Discriminator: HcDiscriminator[HcPex4Message] = Discriminator(MsgTypePex4)
   implicit val hcPex6Discriminator: HcDiscriminator[HcPex6Message] = Discriminator(MsgTypePex6)
   implicit val hcChangeNicknameDiscriminator: HcDiscriminator[HcChangeNicknameMessage] = Discriminator(MsgTypeChangeNickname)
@@ -116,8 +120,7 @@ object HcCodec {
   implicit val hcAudioDiscriminator: HcDiscriminator[HcAudioMessage] = Discriminator(MsgTypeAudio)
 }
 
-
-/* Different kinds of audio encodings, how to handle them?? */
+/* Different kinds of PCM audio encodings, how to handle them?? */
 object AudioEncoding {
   sealed trait AudioEncoding
   case object Pcm extends AudioEncoding

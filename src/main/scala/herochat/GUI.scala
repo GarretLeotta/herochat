@@ -9,13 +9,15 @@ import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.{ObservableBuffer, ObservableMap}
 import scalafx.beans.property.{ObjectProperty, StringProperty, DoubleProperty}
-import scalafx.scene.{Scene}
+import scalafx.scene.{Scene, SubScene}
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.input.{MouseButton, MouseEvent, KeyEvent}
-import scalafx.scene.layout.{BorderPane}
+import scalafx.scene.paint.Color
+import scalafx.scene.layout.{BorderPane, StackPane, FlowPane}
 import scalafx.stage.WindowEvent
 
 import java.util.UUID
+import java.util.Timer
 
 import javax.sound.sampled.{Mixer}
 
@@ -46,20 +48,35 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
 
   val stylesheet = getClass.getResource("styles.css").toExternalForm
 
-  val defaultScene = new BorderPane {
-    top = new TitlePane().content
-    left = new LobbyPane(userMap, localPeerProp).content
-    center = new ChatPane(messages).content
-    //right = new ServerPane(serverList).content
-    bottom = new TestButtonPane(stylesheet, localPeerProp, joinLink).content
+
+  val timer = new Timer()
+  override def stopApp(): Unit = {
+    timer.cancel()
   }
 
-  val optionsScene = new OptionsPane(settings, localPeerProp, pttShortcut, pttDelay)
+  import scalafx.scene.control.Button
+  import scalafx.scene.layout.{Background, BackgroundFill, CornerRadii}
+  import scalafx.geometry.{Pos, Insets}
+
+
+  val primaryToaster = new Toaster(timer)
+  val defaultScenePane = new StackPane {
+    children = Seq(new BorderPane {
+      top = new TitlePane().content
+      left = new LobbyPane(userMap, localPeerProp).content
+      center = new ChatPane(messages).content
+      //right = new ServerPane(serverList).content
+      bottom = new TestButtonPane(stylesheet, localPeerProp, joinLink).content
+    }, primaryToaster)
+  }
+
+  val optionsScenePane = new OptionsPane(settings, localPeerProp, pttShortcut, pttDelay)
 
   val primaryScene = new Scene {
     stylesheets += stylesheet
-    root = defaultScene
+    root = defaultScenePane
   }
+
   stage = new PrimaryStage {
     title = "Herochat (Dev)"
     icons += new Image(getClass.getClassLoader.getResourceAsStream("images/icon.png"))
@@ -68,28 +85,27 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
     scene = primaryScene
     /* Stuff that can only happen after window is initialized */
     this.handleEvent(WindowEvent.WindowShown) { event: WindowEvent => {
-      optionsScene.onStartup()
+      optionsScenePane.onStartup()
     }}
   }
 
   def showOptions(): Unit = {
-    primaryScene.root = optionsScene
+    primaryScene.root = optionsScenePane
   }
 
   def showDefault(): Unit = {
-    primaryScene.root = defaultScene
+    primaryScene.root = optionsScenePane
   }
-
 
   def updateOptionsInputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info]): Unit = {
-    optionsScene.audioTab.inMixers.clear()
-    optionsScene.audioTab.inMixers ++= mixers
-    optionsScene.audioTab.selectedInMixer.update(currentMixer)
+    optionsScenePane.audioTab.inMixers.clear()
+    optionsScenePane.audioTab.inMixers ++= mixers
+    optionsScenePane.audioTab.selectedInMixer.update(currentMixer)
   }
   def updateOptionsOutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info]): Unit = {
-    optionsScene.audioTab.outMixers.clear()
-    optionsScene.audioTab.outMixers ++= mixers
-    optionsScene.audioTab.selectedOutMixer.update(currentMixer)
+    optionsScenePane.audioTab.outMixers.clear()
+    optionsScenePane.audioTab.outMixers ++= mixers
+    optionsScenePane.audioTab.selectedOutMixer.update(currentMixer)
   }
 
   viewActor ! HcView.GuiInitialized

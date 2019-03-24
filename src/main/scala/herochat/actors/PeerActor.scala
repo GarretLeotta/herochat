@@ -125,6 +125,8 @@ class PeerActor(
     case HandshakeInitiator =>
       log.debug(s"Peer starting in Initiate Mode, connecting to $remoteAddress")
       IO(Tcp) ! Connect(remoteAddress)
+      /* Timeout?? */
+      //Connect(remoteAddress: InetSocketAddress, localAddress: Option[InetSocketAddress] = None, options: Traversable[SocketOption] = Nil, timeout: Option[FiniteDuration] = None, pullMode: Boolean = false) extends Command with Product with Serializable
       handshakeInitiate
     case HandshakeReceiver =>
       log.debug(s"Peer starting in Reciprocate Mode, connected to $remoteAddress")

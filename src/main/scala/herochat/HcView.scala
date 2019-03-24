@@ -22,6 +22,7 @@ import java.util.UUID
 import javax.sound.sampled.{Mixer}
 
 import herochat.actors.{BigBoss}
+import herochat.ui.Toast
 import herochat.SnakeController.ToModel
 
 object HcView {
@@ -48,6 +49,8 @@ object HcView {
   case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
 
   case class JoinLink(joinLink: String)
+
+  case class ShowToast(msg: String, level: Toast.Level)
 }
 
 /**
@@ -160,6 +163,10 @@ class HcView(
 
     case HcView.JoinLink(joinLink) => Platform.runLater {
       guiInstance.joinLink.update(joinLink)
+    }
+
+    case HcView.ShowToast(msg: String, level: Toast.Level) => Platform.runLater {
+      guiInstance.primaryToaster.addToast(msg, level)
     }
 
     case BigBoss.ReceivedMessage(uuid, msg) => Platform.runLater {

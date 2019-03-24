@@ -9,11 +9,10 @@ import scalafx.application.JFXApp
 import scalafx.application.JFXApp.PrimaryStage
 import scalafx.collections.{ObservableBuffer, ObservableMap}
 import scalafx.beans.property.{ObjectProperty, StringProperty, DoubleProperty}
-import scalafx.scene.{Scene, SubScene}
+import scalafx.scene.Scene
 import scalafx.scene.image.{Image, ImageView}
 import scalafx.scene.input.{MouseButton, MouseEvent, KeyEvent}
-import scalafx.scene.paint.Color
-import scalafx.scene.layout.{BorderPane, StackPane, FlowPane}
+import scalafx.scene.layout.{BorderPane, StackPane}
 import scalafx.stage.WindowEvent
 
 import java.util.UUID
@@ -48,16 +47,10 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
 
   val stylesheet = getClass.getResource("styles.css").toExternalForm
 
-
   val timer = new Timer()
   override def stopApp(): Unit = {
     timer.cancel()
   }
-
-  import scalafx.scene.control.Button
-  import scalafx.scene.layout.{Background, BackgroundFill, CornerRadii}
-  import scalafx.geometry.{Pos, Insets}
-
 
   val primaryToaster = new Toaster(timer)
   val defaultScenePane = new StackPane {

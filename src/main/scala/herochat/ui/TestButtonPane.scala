@@ -11,7 +11,7 @@ import scalafx.scene.control.{Label, ButtonBar, Button, TextField}
 import scalafx.scene.input.{Clipboard, ClipboardContent}
 import scalafx.scene.text.{Font, FontWeight, Text}
 import scalafx.scene.layout.{HBox, VBox}
-import scalafx.stage.{Stage, Popup}
+import scalafx.stage.{Stage}
 
 import javafx.event.ActionEvent
 
@@ -95,7 +95,7 @@ class TestButtonPane(
       msgButton("Disconnect", HcView.DisconnectFromLobby),
       msgButton("Mute", ToModel(BigBoss.SetMuteUser(localPeer().id, true))),
       msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localPeer().id, false))),
-      msgButton("Notify Yourself", HcView.ShowToast("Hello Jannies ;)", Toast.Info))
+      //msgButton("Notify Yourself", HcView.ShowToast("Hello Jannies ;)", Toast.Info))
       /*
       msgButton("Speak", ToModel(BigBoss.StartSpeaking)),
       msgButton("Don't speak", ToModel(BigBoss.StopSpeaking)),

@@ -95,7 +95,6 @@ class TestButtonPane(
       msgButton("Disconnect", HcView.DisconnectFromLobby),
       msgButton("Mute", ToModel(BigBoss.SetMuteUser(localPeer().id, true))),
       msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localPeer().id, false))),
-      //msgButton("Notify Yourself", HcView.ShowToast("Hello Jannies ;)", Toast.Info))
       /*
       msgButton("Speak", ToModel(BigBoss.StartSpeaking)),
       msgButton("Don't speak", ToModel(BigBoss.StopSpeaking)),

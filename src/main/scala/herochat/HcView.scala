@@ -28,22 +28,20 @@ import herochat.SnakeController.ToModel
 object HcView {
   def props(settings: Settings): Props = Props(classOf[HcView], settings)
 
-  abstract class HcViewMessage
-
   case object GuiInitialized
 
-  case object ShowDefault extends HcViewMessage
-  case object ShowOptions extends HcViewMessage
+  case object ShowDefault
+  case object ShowOptions
 
-  case class ConnectString(input: String) extends HcViewMessage
-  case object DisconnectFromLobby extends HcViewMessage
+  case class ConnectString(input: String)
+  case object DisconnectFromLobby
 
   case class SendMessage(msg: String)
 
   /* AddPeer and updateState are currently the same */
-  case class AddPeer(peerState: Peer) extends HcViewMessage
-  case class UpdatePeerState(newState: Peer) extends HcViewMessage
-  case class RemovePeer(uuid: UUID) extends HcViewMessage
+  case class AddPeer(peerState: Peer)
+  case class UpdatePeerState(newState: Peer)
+  case class RemovePeer(uuid: UUID)
 
   case class InputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
   case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
@@ -89,10 +87,12 @@ class HcView(
     Try(inport.toInt).toOption
   }
 
-  val ip4_pattern = "([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}):?([0-9]{0,5})"
-  val ip6p_pattern = "\\[([0-9a-zA-Z:]*)\\]:([0-9]{0,5})"
-  val ip6_pattern = "([0-9a-zA-Z:]+)"
-  val url_pattern = "herochat\\.net/([0-9a-zA-Z-_]+)"
+  /* TODO: this pattern matching stuff sucks */
+  val ip4Pattern = "([0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}):?([0-9]{0,5})"
+  val ip6PortPattern = "\\[([0-9a-zA-Z:]*)\\]:([0-9]{0,5})"
+  val ip6Pattern = "([0-9a-zA-Z:]+)"
+  val urlPattern = "herochat\\.net/([0-9a-zA-Z-_]+)"
+  val encodedPattern = "([0-9a-zA-Z-_]{8}|[0-9a-zA-Z-_]{24})"
 
   /* defer all messages until GUI thread is initialized */
   var pre_init_msgs = Buffer[Tuple2[ActorRef, Any]]()
@@ -115,26 +115,33 @@ class HcView(
     case HcView.ConnectString(input: String) =>
       input match {
         //validation in View Actor
-        case ip4_pattern.r(addr, port) =>
+        case ip4Pattern.r(addr, port) =>
           /* TODO: handle no port*/
           log.debug(s"match_ip4: $addr, $port.")
-          Try(port.toInt).toOption.foreach((x: Int) => parent ! BigBoss.Connect(new InetSocketAddress(addr, x)))
-        case ip6p_pattern.r(addr, port) =>
-          log.debug(s"match_ip6p: $addr,$port.")
-          Try(port.toInt).toOption.foreach((x: Int) => parent ! BigBoss.Connect(new InetSocketAddress(addr, x)))
-        case ip6_pattern.r(addr) =>
+          Try(port.toInt).toOption.foreach((x: Int) => parent ! ToModel(BigBoss.Connect(new InetSocketAddress(addr, x))))
+        case ip6PortPattern.r(addr, port) =>
+          log.debug(s"match_ip6p: $addr, $port.")
+          Try(port.toInt).toOption.foreach((x: Int) => parent ! ToModel(BigBoss.Connect(new InetSocketAddress(addr, x))))
+        /*
+        case ip6Pattern.r(addr) =>
           log.debug(s"match_ip6: $addr.")
           /* TODO: no port */
-        case url_pattern.r(encodedIp) =>
+        */
+        case urlPattern.r(encodedIp) =>
           log.debug(s"match_url: $encodedIp, ${Tracker.decode_url_to_ip(encodedIp)}")
-          Tracker.decode_url_to_ip(encodedIp).foreach(parent ! BigBoss.Connect(_))
-        case _ => log.debug("Got some bullshit")
+          Tracker.decode_url_to_ip(encodedIp).foreach(addr => parent ! ToModel(BigBoss.Connect(addr)))
+        case encodedPattern.r(encodedIp) =>
+          log.debug(s"match_base64: $encodedIp, ${Tracker.decode_url_to_ip(encodedIp)}")
+          Tracker.decode_url_to_ip(encodedIp).foreach(addr => parent ! ToModel(BigBoss.Connect(addr)))
+        case _ =>
+          log.debug(s"invalid IP address entered: $input")
+          self ! HcView.ShowToast("Enter an Ip Address or URL", Toast.Warning)
       }
     case HcView.DisconnectFromLobby =>
-      parent ! BigBoss.DisconnectAll
+      parent ! ToModel(BigBoss.DisconnectAll)
     case HcView.SendMessage(msg) =>
       //TODO: send modes other than shout
-      parent ! BigBoss.Shout(msg)
+      parent ! ToModel(BigBoss.Shout(msg))
 
     //Events from Controller
     case PeerState.NewPeer(peerState) => Platform.runLater {

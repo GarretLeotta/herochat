@@ -8,6 +8,7 @@ import java.net.{InetAddress, Inet4Address, Inet6Address, InetSocketAddress, Net
 
 
 import GCodecs.{inet4Address, inet6Address}
+import scodec.Codec
 import scodec.codecs.{uint16, vector}
 
 object Tracker {
@@ -38,15 +39,14 @@ object Tracker {
   /* to encode a 128 bit address to base 64 takes 22 characters, that looks like this:
    * "https://herochat.net/aBcDefGHiJKLmnoPQRSTUv"
    * TODO: look into ways to shorten these addresses more
-   * TODO: make a scodec?
-   * TODO: scodec conditional on length?
+   * TODO: remove require
    */
   def encode_ip_to_url(ipPort: InetSocketAddress): Option[String] = {
-    ipPort.getAddress match {
-      case address: Inet4Address =>
-        Option(inet4Address.encode(address).require.toBase64(base64Alphabet))
-      case address: Inet6Address =>
-        Option(inet6Address.encode(address).require.toBase64(base64Alphabet))
+    (ipPort.getAddress, ipPort.getPort) match {
+      case (address: Inet4Address, port: Int) =>
+        Option((Codec[Inet4Address] ~~ uint16).encode(address, port).require.toBase64(base64Alphabet))
+      case (address: Inet6Address, port: Int) =>
+        Option((Codec[Inet6Address] ~~ uint16).encode(address, port).require.toBase64(base64Alphabet))
       case _ =>
         None
     }

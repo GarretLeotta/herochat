@@ -32,50 +32,44 @@ import za.co.monadic.scopus.{Sf48000}
 import herochat.HcCodec._
 import herochat.{Settings, HcView, Tracker, PeerTable, Peer, PeerState, AudioControl, WavCodec, AudioUtils}
 import herochat.SnakeController.ToView
+import herochat.ui.{Toast}
 
 import javax.sound.sampled.{DataLine, TargetDataLine, SourceDataLine, AudioSystem, Mixer}
 
 object BigBoss {
   def props(settings: Settings, record: Boolean, settingsFilename: Option[String]): Props = Props(classOf[BigBoss], settings, record, settingsFilename)
-
-  //Don't know about this extends thing, probably a bad idea
-  //It would be cool if I could make a macro, so didnt have to write etends every time
-  //Another way to go is to wrap the messages, like ToBigBoss(Connect(remoteAddress))
-  //  The wrap-method could be problematic
-  abstract class BigBossMessage
-
   //connection commands
-  case class Connect(remoteAddress: InetSocketAddress) extends BigBossMessage
-  case class Disconnect(remoteAddress: InetSocketAddress) extends BigBossMessage
-  case object DisconnectAll extends BigBossMessage
+  case class Connect(remoteAddress: InetSocketAddress)
+  case class Disconnect(remoteAddress: InetSocketAddress)
+  case object DisconnectAll
 
   //Peer creation messages
-  case class IncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, socketRef: ActorRef) extends BigBossMessage
-  case class PeerShook(remoteAddress: InetSocketAddress, remoteUUID: UUID, peerRef: ActorRef, remoteListeningPort: Int) extends BigBossMessage
+  case class IncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, socketRef: ActorRef)
+  case class PeerShook(remoteAddress: InetSocketAddress, remoteUUID: UUID, peerRef: ActorRef, remoteListeningPort: Int)
 
   //chat commands
-  case class Shout(msg: String) extends BigBossMessage
+  case class Shout(msg: String)
   case class ReceivedMessage(senderId: UUID, msg: String)
 
   /* StartSpeaking & StopSpeaking change whether audio data is recorded and sent through pipeline.
    * Mute & UnMute disable & enable, respectively, StartSpeaking */
-  case object StartSpeaking extends BigBossMessage
-  case object StopSpeaking extends BigBossMessage
+  case object StartSpeaking
+  case object StopSpeaking
 
-  case class SetNickname(uuid: UUID, newName: String) extends BigBossMessage
-  case class SetMuteUser(uuid: UUID, setMute: Boolean) extends BigBossMessage
-  case class SetDeafenUser(uuid: UUID, setDeafen: Boolean) extends BigBossMessage
-  case class SetBlockUser(uuid: UUID, setBlock: Boolean) extends BigBossMessage
-  case class SetServerMuteUser(uuid: UUID, setMute: Boolean) extends BigBossMessage
-  case class SetServerDeafenUser(uuid: UUID, setDeafen: Boolean) extends BigBossMessage
-  case class SetVolumeUser(uuid: UUID, vol: Double) extends BigBossMessage
+  case class SetNickname(uuid: UUID, newName: String)
+  case class SetMuteUser(uuid: UUID, setMute: Boolean)
+  case class SetDeafenUser(uuid: UUID, setDeafen: Boolean)
+  case class SetBlockUser(uuid: UUID, setBlock: Boolean)
+  case class SetServerMuteUser(uuid: UUID, setMute: Boolean)
+  case class SetServerDeafenUser(uuid: UUID, setDeafen: Boolean)
+  case class SetVolumeUser(uuid: UUID, vol: Double)
   case class SetPTTDelay(delay: FiniteDuration)
   case class SetPTTShortcut(shortcut: Settings.KeyBinding)
   case object SaveSettings
 
-  case object CloseFile extends BigBossMessage
-  case class ReadFile(filename: String) extends BigBossMessage
-  case class OpenFile(filename: String) extends BigBossMessage
+  case object CloseFile
+  case class ReadFile(filename: String)
+  case class OpenFile(filename: String)
 
   /* Send audio from file to peers */
   case class PlayAudioFile(filename: String, filetype: String)
@@ -88,10 +82,12 @@ object BigBoss {
 
   case object GetJoinLink
 
+  case class ShowErrorMessage(msg: String)
+
   case object DebugPrintConnectedPeers
   //Log Decoded audio
-  //case class StartLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
-  //case class StopLoggingPeer(addr: InetSocketAddress, filename: String) extends BigBossMessage
+  //case class StartLoggingPeer(addr: InetSocketAddress, filename: String)
+  //case class StopLoggingPeer(addr: InetSocketAddress, filename: String)
 }
 
 /**
@@ -250,6 +246,12 @@ class BigBoss(
         val peerRef = context.actorOf(PeerActor.props(remoteAddress, null, PeerActor.HandshakeInitiator, localPeerState, listenAddress), "hc-peer-out-" + genPeerName(remoteAddress))
         peerTable.shakingPeers += ((remoteAddress, peerRef, true, Instant.now))
       } else {
+        /* TODO: don't like this, consider two routes, one for UI, one for pex + other connects*/
+        if (sender == parent) {
+          //UI initiated connect
+          /* TODO: differentiate between diff types of invalid */
+          self ! BigBoss.ShowErrorMessage("Invalid Connection Address")
+        }
         log.debug(s"$remoteAddress is an invalid connection address")
       }
 
@@ -487,6 +489,15 @@ class BigBoss(
 
     case BigBoss.RecordAudioFile(filename, filetype) =>
       ()
+
+    case BigBoss.ShowErrorMessage(msg) =>
+      /* TODO: replace with more flexible notification/error system, with variable styling
+       * e.g. Noise + Toast, Toast only, Flash shit, ...etc
+       */
+      import herochat.SnakeController.ToView
+      import herochat.HcView
+      import herochat.ui.Toast
+      parent ! ToView(HcView.ShowToast(msg, Toast.Error))
 
     case BigBoss.DebugPrintConnectedPeers =>
       log.debug(s"Connected Peers: ${peerTable.shookPeers.map(_._6)}")

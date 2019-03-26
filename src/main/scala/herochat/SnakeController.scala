@@ -46,11 +46,11 @@ class SnakeController(
   val view = context.actorOf(HcView.props(settings), "herochat-view")
 
   def receive: Receive = {
+    /* really, any message from view goes to model and vice versa, can just check sender */
     case ToView(msg) => view ! msg
     case ToModel(msg) => model ! msg
 
-    case msg: BigBoss.BigBossMessage => model ! msg
-    case msg: HcView.HcViewMessage => view ! msg
+    /* TODO: get rid of this */
     case msg: ChatMessage => view ! msg
     case ShutDown => killswitch ! ShutDown
     case _ @ msg => log.debug(s"Bad Msg: $msg, $sender")
@@ -87,7 +87,6 @@ class FakeController(
 
   def receive: Receive = {
     case SnakeController.ToModel(msg) => model ! msg
-    case msg: BigBoss.BigBossMessage => model ! msg
     case ShutDown => killswitch ! ShutDown
     case _ @ msg => log.debug(s"Bad Msg: $msg, $sender")
   }

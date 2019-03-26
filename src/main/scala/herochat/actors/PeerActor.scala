@@ -113,7 +113,6 @@ class PeerActor(
   }
 
   def updateState(newPeerState: Peer): Unit = {
-    log.debug(s"in update state $parent")
     peerState = Some(newPeerState)
     parent ! PeerState.UpdatePeer(newPeerState)
   }
@@ -146,6 +145,7 @@ class PeerActor(
       }
       parent ! PeerState.NewPeer(peerState.get)
     case HandshakeTimeout =>
+      parent ! BigBoss.ShowErrorMessage("Connection Handshake Timed Out")
       log.debug(s"Handshake timed out, disconnecting from remote host")
       self ! Disconnect
     case Disconnect =>
@@ -213,6 +213,7 @@ class PeerActor(
       become(handshakeReceive)
     case CommandFailed(_: Connect) =>
       log.debug(s"failed to connect: $sender")
+      parent ! BigBoss.ShowErrorMessage("Couldn't connect to remote host")
       context stop self
     case _ @ msg => log.debug(s"handshake-initiate: Bad Msg: $msg, $sender")
   }

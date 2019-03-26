@@ -22,6 +22,9 @@ import herochat.SnakeController.ToModel
 
 import ghook.GlobalHook
 
+/* TODO: connect, disconnect, invite, and settings functionality is only here, need to add it
+ * somewhere else so I can delete this file
+ */
 class TestButtonPane(
     var stylesheet: String,
     var localPeer: ObjectProperty[Peer],
@@ -41,6 +44,7 @@ class TestButtonPane(
    */
   val connButton = new Button("Connect") {
     onAction = (event: ActionEvent) => {
+      //why do we send this message? remove it
       viewActor ! ToModel(BigBoss.GetJoinLink)
       val dialog = new ConnectionDialog(stylesheet)
       dialog.showAndWait().foreach(viewActor ! HcView.ConnectString(_))
@@ -86,7 +90,7 @@ class TestButtonPane(
       stage.show()
     }
   }
-
+  //HcView.ShowToast("Test Toast)", Toast.Info)
   val content = new ButtonBar {
     buttons = ObservableBuffer[Button](
       msgButton("Settings", HcView.ShowOptions),

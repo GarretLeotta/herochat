@@ -8,6 +8,7 @@ import org.json4s._
 import org.json4s.native.Serialization
 
 import java.io.{File, FileWriter, FileReader}
+import java.net.{InetAddress}
 import java.util.UUID
 
 /* TODO: should this audio stuff be in another file??? */
@@ -37,10 +38,11 @@ object Settings {
 
   implicit val formats = DefaultFormats ++ List(
     new MixerInfoSerializer(),
+    new InetAddressSerializer(),
     new AudioFormatSerializer(),
     new PeerStateSerializer(),
     new SettingsSerializer(),
-    new InputDeviceSerializer,
+    new InputDeviceSerializer(),
   )
 
   /* TODO: cross platform */
@@ -102,7 +104,8 @@ object Settings {
     new Settings(
       SoundSettings(audioFormat, bufferSize, targetMixer, sourceMixer),
       Peer(UUID.randomUUID, "Norbert", false, false, false, 1.0),
-      localPort = 41330,
+      Tracker.findPublicIp.get,
+      41330,
       20 milliseconds,
     )
   }
@@ -114,10 +117,12 @@ object Settings {
  * Local User information, Local listening Port, Last saved peer information,
  * TODO: Snakecontroller should initialize Settings object, but what about instances without UI
  * TODO: what to do if settings file is invalid
+ * TODO: handle missing fields, versioning
  */
 class Settings(
     var soundSettings: SoundSettings,
     var userSettings: Peer,
+    var localAddress: InetAddress,
     var localPort: Int,
     var pttDelayInMilliseconds: FiniteDuration,
     var peerSettings: mutable.Map[UUID, Peer] = mutable.Map.empty,

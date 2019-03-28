@@ -7,6 +7,7 @@ import scala.collection.mutable
 import org.json4s._
 import org.json4s.native.Serialization
 
+import java.net.{InetAddress}
 import java.util.UUID
 
 import javax.sound.sampled.{AudioFormat, AudioSystem, Mixer}
@@ -25,6 +26,14 @@ class MixerInfoSerializer extends CustomSerializer[Mixer.Info] (implicit format 
     JField("version", JString(mixerInfo.getVersion)),
     JField("description", JString(mixerInfo.getDescription))
   )
+}
+))
+
+class InetAddressSerializer extends CustomSerializer[InetAddress] (implicit format => ( {
+  case jsonObj: JString =>
+    InetAddress.getByName(jsonObj.extract[String])
+}, {
+  case addr: InetAddress => JString(addr.toString)
 }
 ))
 
@@ -75,6 +84,7 @@ class SettingsSerializer extends CustomSerializer[Settings] (implicit format => 
     val soundSettings = (jsonObj \ "soundSettings").extract[SoundSettings]
     val userSettings = (jsonObj \ "userSettings").extract[Peer]
     val localPort = (jsonObj \ "localPort").extract[Int]
+    val localAddress = (jsonObj \ "localAddress").extractOrElse(Tracker.findPublicIp.get)
     val pttDelay = (jsonObj \ "pttDelayInMilliseconds").extract[Int] milliseconds
     /* Jesus Christ.. */
     val peerSettings: mutable.Map[UUID, Peer] = (jsonObj \ "peerSettings").extract[JArray]
@@ -82,11 +92,12 @@ class SettingsSerializer extends CustomSerializer[Settings] (implicit format => 
         map + (peer.id -> peer)
       }
     val shortcuts = (jsonObj \ "shortcuts").extract[mutable.Map[String, Settings.KeyBinding]]
-    new Settings(soundSettings, userSettings, localPort, pttDelay, peerSettings, shortcuts)
+    new Settings(soundSettings, userSettings, localAddress, localPort, pttDelay, peerSettings, shortcuts)
 }, {
   case settings: Settings => JObject(
     JField("soundSettings", Extraction.decompose(settings.soundSettings)),
     JField("localPort", Extraction.decompose(settings.localPort)),
+    JField("localAddress", Extraction.decompose(settings.localAddress)),
     JField("userSettings", Extraction.decompose(settings.userSettings)),
     JField("peerSettings", Extraction.decompose(settings.peerSettings.values)),
     JField("pttDelayInMilliseconds", Extraction.decompose(settings.pttDelayInMilliseconds.length)),

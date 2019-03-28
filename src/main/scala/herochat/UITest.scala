@@ -64,7 +64,7 @@ object MVCAkkaTest extends App {
   def testHeadless(args: Array[String]): Unit = {
     val controller = system.actorOf(SnakeController.props(killswitch, false, None), s"hcController")
     val bigBossT1 = system.actorOf(FakeController.props(killswitch, false, Some("settings.1.json")), "fakeCtrl1")
-    val ip6addr = Tracker.find_public_ip().get
+    val ip6addr = Tracker.findPublicIp().get
     Vector(
       (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr, 41330)))),
       //(3.0 seconds, bigBossT1, ToModel(BigBoss.SetMuteUser(User(new UUID(0,1), "Mememan"), false))),
@@ -80,7 +80,7 @@ object MVCAkkaTest extends App {
     //val bigBossT2 = system.actorOf(BigBoss.props(41332, User(new UUID(0,2), "Momomonkey"), false), "bigbosst2")
     import java.util.UUID
     val testUUID = UUID.fromString("86bda808-561b-42cf-9e63-f4c3b43905ef")
-    val ip6addr = Tracker.find_public_ip().get
+    val ip6addr = Tracker.findPublicIp().get
     Vector(
       //(1.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbert"))),
       (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr, 41330)))),
@@ -104,7 +104,7 @@ object MVCAkkaTest extends App {
       (1.0 seconds) + (i * 0.5 seconds)
     }
 
-    val ip6addr = Tracker.find_public_ip().get
+    val ip6addr = Tracker.findPublicIp().get
     val controller = system.actorOf(SnakeController.props(killswitch, true, None), s"hcController")
     val bigBosses = (1 to 10).map(createFakeController)
 

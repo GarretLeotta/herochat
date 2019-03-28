@@ -11,7 +11,7 @@ import akka.actor.{ActorRef, Props, Actor, PoisonPill, ActorLogging, Kill}
 import akka.io.{IO, Tcp}
 import akka.util.ByteString
 
-import java.net.{InetAddress, InetSocketAddress}
+import java.net.{InetSocketAddress, InetAddress, Inet6Address}
 import java.io.{FileOutputStream}
 
 import za.co.monadic.scopus.{Sf48000}
@@ -34,6 +34,7 @@ object PeerActor {
   case object StoppedSpeaking
 
   case class SetMixer(lineInfo: DataLine.Info, mixerInfo: Mixer.Info)
+  case class SetListenAddress(addr: InetSocketAddress)
 
   case class LogAudioToFile(filename: String)
   case class CloseLogFile(filename: String)
@@ -52,20 +53,17 @@ object PeerActor {
 
 class PeerActor(
     val remoteAddress: InetSocketAddress,
-    private var socket: ActorRef,
+    var socket: ActorRef,
     initialState: PeerActor.InitialState,
     var localPeer: Peer,
-    localAddress: InetSocketAddress,
+    var localAddress: InetSocketAddress,
   ) extends Actor with ActorLogging {
   import context._
   import Tcp._
   import PeerActor._
 
-  val localPort: Int = localAddress.getPort
   /* These variables are assigned when handshake is complete */
   /* TODO: would be better defining these in a closure, or at least using Option */
-  //var remoteUser: User = null
-  var remoteListeningPort: Int = -1
   //state is None before handshake is complete
   var peerState: Option[Peer] = None
 
@@ -171,16 +169,15 @@ class PeerActor(
   /* Wait for auth message from remote host; respond with an auth message*/
   val handshakeReciproAuthHandler = new HcMessageHandler(0, {
     case HcAuthMessage(uuid, port, nickname) =>
-      remoteListeningPort = port
       /* Default Peer State, BigBoss sends Mute/Deafened/Volume State from file on Handshakecomplete */
       peerState = Some(Peer(uuid, nickname, false, false, false, 1.0))
       log.debug(s"Received Handshake auth message: $uuid, $port, $nickname, sending response")
-      val response = HcAuthMessage(localPeer.id, localPort, localPeer.nickname)
+      val response = HcAuthMessage(localPeer.id, localAddress.getPort, localPeer.nickname)
       socket ! Write(ByteString(Codec[HcMessage].encode(response).require.toByteArray))
 
       //Peer does not complete handshake until it receives signoff from BigBoss
       //handles a race condition where two peers connect to eachother at nearly the same time
-      parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
+      parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, new InetSocketAddress(remoteAddress.getAddress, port))
       /* Store messages received until BigBoss responds with HandshakeComplete. Handles a race
        * condition where this Peer receives a Pex message before handshake fully completes */
       become(handshakeStorage)
@@ -188,11 +185,10 @@ class PeerActor(
   /* Wait for auth message from remote host; handshake is complete when received*/
   val handshakeReceiveAuthHandler = new HcMessageHandler(0, {
     case HcAuthMessage(uuid, port, nickname) =>
-      remoteListeningPort = port
       /* Default Peer State, BigBoss sends Mute/Deafened/Volume State from file on Handshakecomplete */
       peerState = Some(Peer(uuid, nickname, false, false, false, 1.0))
       log.debug(s"Received Handshake auth message: $uuid, $port, $nickname, handshake complete")
-      parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, remoteListeningPort)
+      parent ! BigBoss.PeerShook(remoteAddress, peerState.get.id, self, new InetSocketAddress(remoteAddress.getAddress, port))
       become(handshakeStorage)
   })
 
@@ -208,7 +204,7 @@ class PeerActor(
       log.debug(s"Received Connection response: $remoteAddress, $localAddress")
       sender ! Register(self)
       socket = sender
-      val authMsg = HcAuthMessage(localPeer.id, localPort, localPeer.nickname)
+      val authMsg = HcAuthMessage(localPeer.id, localAddress.getPort, localPeer.nickname)
       socket ! Write(ByteString(Codec[HcMessage].encode(authMsg).require.toByteArray))
       become(handshakeReceive)
     case CommandFailed(_: Connect) =>
@@ -277,6 +273,8 @@ class PeerActor(
       addresses.foreach((address: InetAddress, port: Int) =>
         parent ! BigBoss.Connect(new InetSocketAddress(address, port))
       )
+    case HcPexChangeAddressMessage(addr, port) =>
+      BigBoss.UpdatePeerPexAddress(peerState.get.id, new InetSocketAddress(addr, port))
   })
   val nicknameHandler = new HcMessageHandler(0, {
     case HcChangeNicknameMessage(newName) =>
@@ -319,6 +317,10 @@ class PeerActor(
       lineInfo = Some(newLineInfo)
       mixerInfo = Some(newMixerInfo)
       respawnPlayer()
+
+    case SetListenAddress(addr) =>
+      localAddress = addr
+      sendHcMessage(HcPexChangeAddressMessage(addr.getAddress.asInstanceOf[Inet6Address], addr.getPort))
 
     case StoppedSpeaking => updateState(peerState.get.copy(speaking = false))
 

@@ -19,7 +19,7 @@ object Tracker {
    * ??? use one that has a prefix length of 128
    * This will be tough to handle all networks, implement a fall back manual method as well
    */
-  def find_public_ip(): Option[InetAddress] = {
+  def findPublicIp(): Option[InetAddress] = {
     NetworkInterface.getNetworkInterfaces().asScala.foreach(interface => {
       if (interface.isUp && !interface.isLoopback) {
         //prefix length 128 only
@@ -36,12 +36,21 @@ object Tracker {
     None
   }
 
+  def allLocalAddresses(): Array[InetAddress] = {
+    NetworkInterface.getNetworkInterfaces.asScala.toArray
+      .filter(iface => iface.isUp && !iface.isLoopback)
+      .flatMap(iface => iface.getInterfaceAddresses.asScala
+        .filter(addr => addr.getNetworkPrefixLength == 128 && !addr.getAddress.isLinkLocalAddress)
+        .map(_.getAddress)
+      )
+  }
+
   /* to encode a 128 bit address to base 64 takes 22 characters, that looks like this:
    * "https://herochat.net/aBcDefGHiJKLmnoPQRSTUv"
    * TODO: look into ways to shorten these addresses more
    * TODO: remove require
    */
-  def encode_ip_to_url(ipPort: InetSocketAddress): Option[String] = {
+  def encodeIpToUrl(ipPort: InetSocketAddress): Option[String] = {
     (ipPort.getAddress, ipPort.getPort) match {
       case (address: Inet4Address, port: Int) =>
         Option((Codec[Inet4Address] ~~ uint16).encode(address, port).require.toBase64(base64Alphabet))
@@ -52,7 +61,7 @@ object Tracker {
     }
   }
 
-  def decode_url_to_ip(url: String): Option[InetSocketAddress] = {
+  def decodeUrlToIp(url: String): Option[InetSocketAddress] = {
     BitVector.fromBase64(url, base64Alphabet) match {
       case Some(encodedIP) =>
         if (encodedIP.size == 48) {
@@ -74,10 +83,5 @@ object Tracker {
  *
  */
 class Tracker(url: String) {
-
-  def get_ip_for_lobby() {
-
-  }
-
 
 }

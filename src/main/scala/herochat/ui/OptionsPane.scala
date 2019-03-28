@@ -27,6 +27,7 @@ class OptionsPane(
   val audioTab = new OptionsAudioPane(settings)
   val userTab = new OptionsUserPane(localPeer)
   val shortcutTab = new OptionsShortcutPane(pttShortcut, pttDelay)
+  val networkTab = new OptionsNetworkPane(settings)
 
   var selectedTab =  ObjectProperty[Pane](this, "selectedTab", userTab)
   var activeTabs = new ObservableBuffer[Tuple2[String, Pane]]()
@@ -34,6 +35,7 @@ class OptionsPane(
     ("User", userTab),
     ("Audio", audioTab),
     ("Shortcuts", shortcutTab),
+    ("Network", networkTab),
   )
 
 

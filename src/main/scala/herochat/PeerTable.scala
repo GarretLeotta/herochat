@@ -96,4 +96,8 @@ class PeerTable(bigboss: ActorRef) {
     shakingPeers -= ((a,b,c,d))
     shookPeers += ((a, b, c, d, uuid, pexAddr))
   }
+
+  def updatePexAddress(uuid: UUID, newPexAddr: InetSocketAddress): Unit = {
+    println("todo")
+  }
 }

@@ -31,11 +31,12 @@ object ConnectionHandler {
 class ConnectionHandler(address: InetSocketAddress) extends Actor with ActorLogging {
   import context._
   import Tcp._
-  
+
   IO(Tcp) ! Tcp.Bind(self, address: InetSocketAddress)
 
   def receive: Receive = {
     case Connected(remoteAddress, localAddress) =>
+      log.debug(s"children: ${context.children}")
       log.debug(s"received connection from: $remoteAddress -> $localAddress")
       parent ! BigBoss.IncomingConnection(remoteAddress, localAddress, sender)
     case _ @ msg => log.debug(s"Bad Msg: $msg")

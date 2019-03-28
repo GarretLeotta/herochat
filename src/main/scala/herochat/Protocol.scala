@@ -45,6 +45,7 @@ object HcCodec {
   sealed trait HcMessage
 
   //case class AuthPayloadWithLobby(uuid: UUID, nickname: String, port: Int, lobbyId: UUID) extends HcPayload
+  /* TODO change port to inetsocketaddress */
   case class HcAuthMessage(uuid: UUID, port: Int, nickname: String) extends HcMessage
   implicit val hcAuthMessage: Codec[HcAuthMessage] = {
     ("uuid"     | uuid) ::
@@ -63,6 +64,10 @@ object HcCodec {
   case class HcPex6Message(addresses: Vector[(Inet6Address, Int)]) extends HcMessage
   implicit val hcPex6Message: Codec[HcPex6Message] =
     vector(inet6Address ~~ uint16).complete.as[HcPex6Message]
+  /* TODO: import inetaddress encoding, extend changeAddress to use inet6 */
+  case class HcPexChangeAddressMessage(address: Inet6Address, port: Int) extends HcMessage
+  implicit val hcPexChangeAddressMessage: Codec[HcPexChangeAddressMessage] =
+    (inet6Address :: uint16).as[HcPexChangeAddressMessage]
 
   case class HcChangeNicknameMessage(newName: String) extends HcMessage
   implicit val hcChangeNicknameMessage: Codec[HcChangeNicknameMessage] = utf8.as[HcChangeNicknameMessage]
@@ -84,8 +89,9 @@ object HcCodec {
 
   val MsgTypePing = 2
 
-  val MsgTypePex4 = 30
-  val MsgTypePex6 = 31
+  val MsgTypePex4 = 304
+  val MsgTypePex6 = 306
+  val MsgTypePexChangeAddress = 316
 
   val MsgTypeRequestAudio = 410
   val MsgTypeRefuseAudio = 411
@@ -112,9 +118,10 @@ object HcCodec {
   type HcDiscriminator[X] = Discriminator[HcMessage, X, Int]
   implicit val hcAuthDiscriminator: HcDiscriminator[HcAuthMessage] = Discriminator(MsgTypeShakeAuth)
   implicit val hcShakeDisconnectDiscriminator: HcDiscriminator[HcShakeDisconnectMessage.type] = Discriminator(MsgTypeShakeDisconnect)
-  implicit val HcPingDiscriminator: HcDiscriminator[HcPingMessage] = Discriminator(MsgTypePing)
+  implicit val hcPingDiscriminator: HcDiscriminator[HcPingMessage] = Discriminator(MsgTypePing)
   implicit val hcPex4Discriminator: HcDiscriminator[HcPex4Message] = Discriminator(MsgTypePex4)
   implicit val hcPex6Discriminator: HcDiscriminator[HcPex6Message] = Discriminator(MsgTypePex6)
+  implicit val hcPexChangeDiscriminator: HcDiscriminator[HcPexChangeAddressMessage] = Discriminator(MsgTypePexChangeAddress)
   implicit val hcChangeNicknameDiscriminator: HcDiscriminator[HcChangeNicknameMessage] = Discriminator(MsgTypeChangeNickname)
   implicit val hcTextDiscriminator: HcDiscriminator[HcTextMessage] = Discriminator(MsgTypeText)
   implicit val hcAudioDiscriminator: HcDiscriminator[HcAudioMessage] = Discriminator(MsgTypeAudio)

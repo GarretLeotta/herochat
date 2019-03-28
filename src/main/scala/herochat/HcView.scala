@@ -46,6 +46,8 @@ object HcView {
   case class InputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
   case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
 
+  case class LocalAddresses(localAddress: InetSocketAddress, localAddrs: Array[InetAddress])
+
   case class JoinLink(joinLink: String)
 
   case class ShowToast(msg: String, level: Toast.Level)
@@ -111,6 +113,7 @@ class HcView(
     case HcView.ShowOptions => Platform.runLater {
         guiInstance.showOptions()
       }
+      /* TODO: fix this, getsupportmixers gives back a lot of stuff */
       parent ! ToModel(BigBoss.GetSupportedMixers)
     case HcView.ConnectString(input: String) =>
       input match {
@@ -128,11 +131,11 @@ class HcView(
           /* TODO: no port */
         */
         case urlPattern.r(encodedIp) =>
-          log.debug(s"match_url: $encodedIp, ${Tracker.decode_url_to_ip(encodedIp)}")
-          Tracker.decode_url_to_ip(encodedIp).foreach(addr => parent ! ToModel(BigBoss.Connect(addr)))
+          log.debug(s"match_url: $encodedIp, ${Tracker.decodeUrlToIp(encodedIp)}")
+          Tracker.decodeUrlToIp(encodedIp).foreach(addr => parent ! ToModel(BigBoss.Connect(addr)))
         case encodedPattern.r(encodedIp) =>
-          log.debug(s"match_base64: $encodedIp, ${Tracker.decode_url_to_ip(encodedIp)}")
-          Tracker.decode_url_to_ip(encodedIp).foreach(addr => parent ! ToModel(BigBoss.Connect(addr)))
+          log.debug(s"match_base64: $encodedIp, ${Tracker.decodeUrlToIp(encodedIp)}")
+          Tracker.decodeUrlToIp(encodedIp).foreach(addr => parent ! ToModel(BigBoss.Connect(addr)))
         case _ =>
           log.debug(s"invalid IP address entered: $input")
           self ! HcView.ShowToast("Enter an Ip Address or URL", Toast.Warning)
@@ -166,6 +169,12 @@ class HcView(
       log.debug(s"got output ${mixers.mkString(" :: ")}")
       Platform.runLater {
         guiInstance.updateOptionsOutputMixers(currentMixer, mixers)
+      }
+
+    case HcView.LocalAddresses(localAddress, localAddrs) =>
+      log.debug(s"got addresses ${localAddrs.mkString(" :: ")}")
+      Platform.runLater {
+        guiInstance.updateOptionsInetAddresses(localAddress, localAddrs)
       }
 
     case HcView.JoinLink(joinLink) => Platform.runLater {

@@ -15,6 +15,8 @@ import scalafx.scene.input.{MouseButton, MouseEvent, KeyEvent}
 import scalafx.scene.layout.{BorderPane, StackPane}
 import scalafx.stage.WindowEvent
 
+import java.net.{InetSocketAddress, InetAddress}
+
 import java.util.UUID
 import java.util.Timer
 
@@ -87,7 +89,7 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
   }
 
   def showDefault(): Unit = {
-    primaryScene.root = optionsScenePane
+    primaryScene.root = defaultScenePane
   }
 
   def updateOptionsInputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info]): Unit = {
@@ -99,6 +101,13 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
     optionsScenePane.audioTab.outMixers.clear()
     optionsScenePane.audioTab.outMixers ++= mixers
     optionsScenePane.audioTab.selectedOutMixer.update(currentMixer)
+  }
+
+  def updateOptionsInetAddresses(localAddress: InetSocketAddress, localAddrs: Array[InetAddress]): Unit = {
+    optionsScenePane.networkTab.localAddresses.clear()
+    optionsScenePane.networkTab.localAddresses ++= localAddrs
+    optionsScenePane.networkTab.localAddress.update(localAddress.getAddress)
+    optionsScenePane.networkTab.localPort.update(localAddress.getPort)
   }
 
   viewActor ! HcView.GuiInitialized

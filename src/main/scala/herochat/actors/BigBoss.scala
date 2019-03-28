@@ -7,7 +7,7 @@ import scala.collection.mutable.Map
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-import akka.actor.{ActorRef, Props, Actor, Terminated, Kill, ActorLogging}
+import akka.actor.{ActorRef, Props, Actor, Terminated, Kill, PoisonPill, ActorLogging}
 import akka.io.{IO, Tcp}
 import akka.util.{Timeout, ByteString}
 import akka.pattern.ask
@@ -45,7 +45,7 @@ object BigBoss {
 
   //Peer creation messages
   case class IncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, socketRef: ActorRef)
-  case class PeerShook(remoteAddress: InetSocketAddress, remoteUUID: UUID, peerRef: ActorRef, remoteListeningPort: Int)
+  case class PeerShook(remoteAddress: InetSocketAddress, remoteUUID: UUID, peerRef: ActorRef, remotePexAddress: InetSocketAddress)
 
   //chat commands
   case class Shout(msg: String)
@@ -56,6 +56,7 @@ object BigBoss {
   case object StartSpeaking
   case object StopSpeaking
 
+  /* TODO: is there a way to not define a case class for every user state? */
   case class SetNickname(uuid: UUID, newName: String)
   case class SetMuteUser(uuid: UUID, setMute: Boolean)
   case class SetDeafenUser(uuid: UUID, setDeafen: Boolean)
@@ -79,6 +80,9 @@ object BigBoss {
   case object GetSupportedMixers
   case class SetInputMixer(mixer: Mixer.Info)
   case class SetOutputMixer(mixer: Mixer.Info)
+
+  case class SetListenAddress(addr: InetSocketAddress)
+  case class UpdatePeerPexAddress(uuid: UUID, addr: InetSocketAddress)
 
   case object GetJoinLink
 
@@ -124,10 +128,17 @@ class BigBoss(
   var targetMixer = targetMixes(0)
 
   //IP address we listen for new connections on
-  /* TODO: LATER: support modifying what port we listen on during runtime */
   /* TODO: handle failing to find public ip address */
-  val listenAddress = new InetSocketAddress(Tracker.find_public_ip().get, settings.localPort)
-  val connHandler = context.actorOf(ConnectionHandler.props(listenAddress), "hc-connection-handler")
+  /* TODO: settings localAddress is a preference, alert user if that address is no longera available */
+  var listenAddress = new InetSocketAddress(Tracker.findPublicIp().get, settings.localPort)
+  var connHandler = context.actorOf(ConnectionHandler.props(listenAddress), s"hc-connection-handler-${listenAddress.getPort}")
+
+  val localAddrs = Tracker.allLocalAddresses
+  log.debug(s"TESTIP: ${Tracker.findPublicIp().get} :: ${localAddrs.mkString(" :: ")}")
+  localAddrs.foreach { addr =>
+    log.debug(s"addr $addr :: ${addr.getCanonicalHostName}, ${addr.getHostAddress}, ${addr.getHostName}, ${addr.isAnyLocalAddress}, ${addr.isLinkLocalAddress}, ${addr.isLoopbackAddress}, ${addr.isMCGlobal}, ${addr.isMCLinkLocal}, ${addr.isMCNodeLocal}, ${addr.isMCOrgLocal}, ${addr.isMCSiteLocal}, ${addr.isMulticastAddress}, ${addr.isSiteLocalAddress}")
+  }
+
 
   /* TODO: support multiple simultaneous file reads/writes */
   val filereader = context.actorOf(FileReader.props(), "hc-filereader")
@@ -270,11 +281,10 @@ class BigBoss(
       }
 
     /* TODO: what if we attempt two handshakes to same peer */
-    case BigBoss.PeerShook(remoteAddress, remoteUUID, peerRef, remoteListeningPort) =>
-      val remotePexAddr = new InetSocketAddress(remoteAddress.getAddress, remoteListeningPort)
-      log.debug(s"Received shook notice from: $peerRef: $remoteAddress, $remoteUUID, $remoteListeningPort")
-      if (peerTable.postShakeVerify(remoteAddress, remotePexAddr)) {
-        completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddr)
+    case BigBoss.PeerShook(remoteAddress, remoteUUID, peerRef, remotePexAddress) =>
+      log.debug(s"Received shook notice from: $peerRef: $remoteAddress, $remoteUUID, $remotePexAddress")
+      if (peerTable.postShakeVerify(remoteAddress, remotePexAddress)) {
+        completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddress)
       } else {
         /* TODO: evaluate this logic, simultaneous connections don't generally work, is it worth the
          * complexity to save a few odd scenarios?
@@ -288,9 +298,9 @@ class BigBoss(
          */
         /* TODO: scala-fy java.time */
         //get conflicting peer
-        log.debug(s"peer conflict: $remoteAddress, $remotePexAddr, ${peerTable.shakingPeers}, ${peerTable.shookPeers}")
+        log.debug(s"peer conflict: $remoteAddress, $remotePexAddress, ${peerTable.shakingPeers}, ${peerTable.shookPeers}")
         val newPeer = peerTable.getUnShookByPeerRef(peerRef).get
-        val oldPeer = (peerTable.getShookByAddr(remoteAddress) orElse peerTable.getShookByPexAddr(remotePexAddr)).get
+        val oldPeer = (peerTable.getShookByAddr(remoteAddress) orElse peerTable.getShookByPexAddr(remotePexAddress)).get
         //check if shook peer is older than 5 seconds
         /* TODO: document this, put in function */
         if (oldPeer._4.plus(1, ChronoUnit.SECONDS).isBefore(Instant.now)) {
@@ -304,7 +314,7 @@ class BigBoss(
             if (localPeerState.id.compareTo(remoteUUID) < 0) {
               log.debug(s"pconf 3: ${oldPeer}, ${newPeer}")
               removePostShakePeer(oldPeer)
-              completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddr)
+              completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddress)
             } else {
               log.debug(s"pconf 4: ${oldPeer}, ${newPeer}")
               removePreShakePeer(newPeer)
@@ -316,7 +326,7 @@ class BigBoss(
             } else {
               log.debug(s"pconf 6: ${oldPeer}, ${newPeer}")
               removePostShakePeer(oldPeer)
-              completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddr)
+              completeHandshake(remoteAddress, peerRef, remoteUUID, remotePexAddress)
             }
           }
         }
@@ -440,6 +450,7 @@ class BigBoss(
 
       parent ! ToView(HcView.OutputMixers(sourceMixer, sourceMixers))
       parent ! ToView(HcView.InputMixers(targetMixer, targetMixers))
+      parent ! ToView(HcView.LocalAddresses(listenAddress, Tracker.allLocalAddresses))
     case BigBoss.SetInputMixer(mixer) =>
       /* TODO: make sure that if we change mixer in bigboss, it is updated in the GUI */
       log.debug(s"new input mixer recved: $mixer, $targetMixer")
@@ -456,15 +467,37 @@ class BigBoss(
         peerTable.shookPeers.foreach( _._2 ! PeerActor.SetMixer(sourceInfo, sourceMixer) )
       }
 
+    /** kill connectionHandler (handle pending connections first)
+     *  Notify peers that our ListenAddress has changed (for PEX purposes)
+     *  modify listenAddress on settings
+     * TODO: test preshake peers getting the message
+     */
+    case BigBoss.SetListenAddress(addr) =>
+      log.debug(s"got SetListenAddress message $addr")
+      if (addr == listenAddress) {
+        log.debug(s"'new Listen Address' $addr is the same as current: $listenAddress")
+      } else {
+        connHandler ! PoisonPill
+        listenAddress = addr
+        connHandler = context.actorOf(ConnectionHandler.props(listenAddress), s"hc-connection-handler-${listenAddress.getPort}")
+        peerTable.shakingPeers.foreach( _._2 ! PeerActor.SetListenAddress(addr) )
+        peerTable.shookPeers.foreach( _._2 ! PeerActor.SetListenAddress(addr) )
+      }
+
+    case BigBoss.UpdatePeerPexAddress(uuid, addr) =>
+      log.debug(s"updating peer table pex address $uuid, $addr")
+      peerTable.updatePexAddress(uuid, addr)
+
+
     case BigBoss.SaveSettings =>
       log.debug("write settings due to SaveSettings")
       settings.writeSettingsFile(settingsFilename)
 
     case BigBoss.GetJoinLink =>
-      Tracker.find_public_ip match {
+      Tracker.findPublicIp match {
         case Some(addr) =>
           val sockAddr = new InetSocketAddress(addr, settings.localPort)
-          parent ! ToView(HcView.JoinLink(Tracker.encode_ip_to_url(sockAddr).get))
+          parent ! ToView(HcView.JoinLink(Tracker.encodeIpToUrl(sockAddr).get))
         case None => ()
       }
 

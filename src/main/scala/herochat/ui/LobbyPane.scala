@@ -24,8 +24,8 @@ import herochat.SnakeController.ToModel
 
 /* how does lobbyPane know which peer is the local peer? */
 class LobbyPane(
-    var pmap: ObservableMap[UUID, Peer],
-    var localPeer: ObjectProperty[Peer]
+    val pmap: ObservableMap[UUID, Peer],
+    val localPeer: ObjectProperty[Peer]
   )(implicit val viewActor: ActorRef) {
   val title = new Label("Lobby") {
     font = Font.font(null, FontWeight.Bold, 12)
@@ -38,6 +38,7 @@ class LobbyPane(
     true -> new Image(getClass.getClassLoader.getResourceAsStream("images/mic_red.png")),
   )
 
+  /* TODO: double mutability */
   var peer_positions = scala.collection.mutable.Map[UUID, Int]()
 
   val lobby_list = new VBox {
@@ -134,7 +135,7 @@ class LobbyPane(
 
   /* Runs whenever a peer is updated */
   def createUserContextMenu(peerState: Peer): ContextMenu = {
-    var menuItems = Buffer[MenuItem]()
+    val menuItems = Buffer[MenuItem]()
 
     menuItems += checkBoxMenuItem("Mute", peerState.muted, ((x: Boolean) => ToModel(BigBoss.SetMuteUser(peerState.id, x))))
     if (peerState.id == localPeer().id) {

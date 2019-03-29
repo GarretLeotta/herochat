@@ -29,7 +29,7 @@ class FileReader() extends Actor with ActorLogging {
   val bufSz = 24000
   val bytes = new Array[Byte](bufSz)
 
-  var subscribers = scala.collection.mutable.Set[ActorRef]()
+  val subscribers = scala.collection.mutable.Set[ActorRef]()
 
   def inactive: Receive = {
     case AddSubscriber(sub) =>

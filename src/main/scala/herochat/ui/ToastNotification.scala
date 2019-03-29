@@ -104,7 +104,7 @@ class Toaster(timer: Timer) extends Pane {
   val notificationHeight = 500
   val notificationPad = 10
 
-  var notis = ObservableBuffer[Toast]()
+  val notis = ObservableBuffer[Toast]()
   notis.onChange( (source, change) => {
     toastPane.children = notis
   })

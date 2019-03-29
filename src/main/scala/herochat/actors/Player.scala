@@ -48,25 +48,24 @@ object AudioPlayer {
   def props(lineInfo: DataLine.Info, mixerInfo: Mixer.Info): Props = Props(classOf[AudioPlayer], lineInfo, mixerInfo)
 }
 
-/*  */
+/**
+ *  TODO: debug method to show if lines are running
+ */
 class AudioPlayer(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
   import context._
   import AudioPlayer._
   import herochat.AudioControl._
 
-  //sbt compatibility - Need to change class loader for javax to work
-  val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
-  val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
-  Thread.currentThread.setContextClassLoader(cl)
   override def postStop {
     deactivateAudioLine()
-    log.debug(s"Stopping $self, resetting thread context class loader")
-    Thread.currentThread.setContextClassLoader(old_cl)
   }
 
   log.debug(s"AudioPlayer starting on Mixer: $mixerInfo")
   //Initialize javax sound system
-  val inmix = AudioSystem.getMixer(mixerInfo)
+  val inmix = AudioUtils.sbtCompatibilityBlock {
+    AudioSystem.getMixer(mixerInfo)
+  }
+  /* Should I move sourceLine to playQueue? */
   val sourceLine = inmix.getLine(lineInfo).asInstanceOf[SourceDataLine]
   val playQueue = context.actorOf(PlayQueue.props(sourceLine), "playQueue")
 

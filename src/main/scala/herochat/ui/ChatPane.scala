@@ -16,7 +16,7 @@ import scalafx.scene.text.{Font, FontWeight, Text}
 import herochat.{ChatMessage, HcView}
 
 
-class ChatPane(var messages: ObservableBuffer[ChatMessage])(implicit val viewActor: ActorRef) {
+class ChatPane(val messages: ObservableBuffer[ChatMessage])(implicit val viewActor: ActorRef) {
   def renderChatMessage(msg: ChatMessage) = {
     new TextArea() {
       text = msg.toString

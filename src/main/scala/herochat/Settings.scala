@@ -118,6 +118,7 @@ object Settings {
  * TODO: Snakecontroller should initialize Settings object, but what about instances without UI
  * TODO: what to do if settings file is invalid
  * TODO: handle missing fields, versioning
+ * TODO: re-examine mutability in this class
  */
 class Settings(
     var soundSettings: SoundSettings,
@@ -125,8 +126,8 @@ class Settings(
     var localAddress: InetAddress,
     var localPort: Int,
     var pttDelayInMilliseconds: FiniteDuration,
-    var peerSettings: mutable.Map[UUID, Peer] = mutable.Map.empty,
-    var shortcuts: mutable.Map[String, Settings.KeyBinding] = mutable.Map.empty,
+    val peerSettings: mutable.Map[UUID, Peer] = mutable.Map.empty,
+    val shortcuts: mutable.Map[String, Settings.KeyBinding] = mutable.Map.empty,
   ) {
   implicit val formats = Settings.formats
 

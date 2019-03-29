@@ -18,7 +18,9 @@ class MixerInfoSerializer extends CustomSerializer[Mixer.Info] (implicit format 
   case jsonObj: JObject =>
     val name = (jsonObj \ "name").extract[String]
     /* get list mixers from audioSystem, filter based on name */
-    AudioSystem.getMixerInfo.find(_.getName == name).get
+    AudioUtils.sbtCompatibilityBlock {
+      AudioSystem.getMixerInfo.find(_.getName == name).get
+    }
 }, {
   case mixerInfo: Mixer.Info => JObject(
     JField("name", JString(mixerInfo.getName)),

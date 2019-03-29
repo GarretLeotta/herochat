@@ -25,9 +25,9 @@ class OptionsNetworkPane(settings: Settings)(implicit val viewActor: ActorRef) e
   spacing = 10
   padding = Insets(20)
 
-  var localAddresses = ObservableBuffer[InetAddress]()
-  var localAddress = new ObjectProperty[InetAddress](this, "localAddress")
-  var localPort = new IntegerProperty(this, "localPort")
+  val localAddresses = ObservableBuffer[InetAddress]()
+  val localAddress = new ObjectProperty[InetAddress](this, "localAddress")
+  val localPort = new IntegerProperty(this, "localPort")
 
   /* TODO: create a comboBox[T] */
   def addressComboBox(

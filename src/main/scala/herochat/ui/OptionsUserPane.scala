@@ -20,7 +20,7 @@ import herochat.{Peer, ChatMessage, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
-class OptionsUserPane(var localPeer: ObjectProperty[Peer])(implicit val viewActor: ActorRef) extends VBox {
+class OptionsUserPane(val localPeer: ObjectProperty[Peer])(implicit val viewActor: ActorRef) extends VBox {
   //style = "-fx-background-color: lightgreen"
   spacing = 10
   padding = Insets(20)

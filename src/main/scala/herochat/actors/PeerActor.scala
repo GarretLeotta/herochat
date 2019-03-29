@@ -68,13 +68,14 @@ class PeerActor(
   var peerState: Option[Peer] = None
 
   /* Order matters in pattern matching, when defining a HcMessageHandler, make sure to think about this */
+  /* TODO: this sucks, move away from this (double-mutability) maybe to FSM */
   var dynHandlers = scala.collection.mutable.SortedSet[HcMessageHandler]()
 
   /* create the Opus decoder, and audio player actors */
   //val nameSuffix = "-" + remoteAddress.toString.replace("/", "")
   val decoder = context.actorOf(Decoder.props(Sf48000, 1), "hc-decoder")
-  var activeFileWriters = scala.collection.mutable.Map[String, ActorRef]()
-  var audioSubscribers = scala.collection.mutable.Set[ActorRef]()
+  val activeFileWriters = scala.collection.mutable.Map[String, ActorRef]()
+  val audioSubscribers = scala.collection.mutable.Set[ActorRef]()
   //this stuff should be conditional
   audioSubscribers += decoder
 
@@ -234,7 +235,7 @@ class PeerActor(
   //Store messages, then send out after handshake complete
   /* TODO: this could be exploited to store a bunch of messages and use a lot of memory.
    * In general, need to prevent exploitation by bad actors. */
-  var handshake_race_msgs = Buffer[Tuple2[ActorRef, Any]]()
+  val handshake_race_msgs = Buffer[Tuple2[ActorRef, Any]]()
   def handshakeStorage: Receive = basicPreShookReceive orElse {
     case msg @ Received(bytes) =>
       log.debug(s"Storing message")

@@ -33,8 +33,8 @@ import herochat.SnakeController.ToModel
  * in a specific way. Will need to revisit this code if I want to add any other way to change PTT
  */
 class OptionsShortcutPane(
-    var pttShortcut: ObjectProperty[Settings.KeyBinding],
-    var pttDelay: DoubleProperty,
+    val pttShortcut: ObjectProperty[Settings.KeyBinding],
+    val pttDelay: DoubleProperty,
   )(implicit val viewActor: ActorRef) extends VBox {
   //style = "-fx-background-color: lightgreen"
   spacing = 10

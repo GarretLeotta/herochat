@@ -27,8 +27,8 @@ object PeerTable {
  */
 class PeerTable(bigboss: ActorRef) {
   import PeerTable._
-  var shakingPeers = scala.collection.mutable.Set[PreShakePeer]()
-  var shookPeers = scala.collection.mutable.Set[PostShakePeer]()
+  val shakingPeers = scala.collection.mutable.Set[PreShakePeer]()
+  val shookPeers = scala.collection.mutable.Set[PostShakePeer]()
 
 
   /* Returns a vector of Peers, both pre and post-shake, that have RemoteAddress == remoteAddr

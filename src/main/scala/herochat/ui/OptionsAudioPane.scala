@@ -24,10 +24,10 @@ class OptionsAudioPane(settings: Settings)(implicit val viewActor: ActorRef) ext
   spacing = 10
   padding = Insets(20)
 
-  var inMixers = ObservableBuffer[Mixer.Info]()
-  var selectedInMixer = ObjectProperty[Mixer.Info](this, "selectedInputMixer")
-  var outMixers = ObservableBuffer[Mixer.Info]()
-  var selectedOutMixer = ObjectProperty[Mixer.Info](this, "selectedOutputMixer")
+  val inMixers = ObservableBuffer[Mixer.Info]()
+  val selectedInMixer = ObjectProperty[Mixer.Info](this, "selectedInputMixer")
+  val outMixers = ObservableBuffer[Mixer.Info]()
+  val selectedOutMixer = ObjectProperty[Mixer.Info](this, "selectedOutputMixer")
 
   def mixerComboBox(
       mixers: ObservableBuffer[Mixer.Info],

@@ -97,7 +97,7 @@ class HcView(
   val encodedPattern = "([0-9a-zA-Z-_]{8}|[0-9a-zA-Z-_]{24})"
 
   /* defer all messages until GUI thread is initialized */
-  var pre_init_msgs = Buffer[Tuple2[ActorRef, Any]]()
+  val pre_init_msgs = Buffer[Tuple2[ActorRef, Any]]()
   def receive: Receive = {
     case HcView.GuiInitialized =>
       become(init_receive)

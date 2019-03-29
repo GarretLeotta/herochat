@@ -12,7 +12,7 @@ import scalafx.scene.text.{Font, FontWeight, Text}
 
 import herochat.Peer
 
-class ServerPane(var users: ObservableBuffer[Peer])(implicit val viewActor: ActorRef) {
+class ServerPane(val users: ObservableBuffer[Peer])(implicit val viewActor: ActorRef) {
   val title = new Label("\"Server\"") {
     font = Font.font(null, FontWeight.Bold, 12)
     alignmentInParent = Pos.Center

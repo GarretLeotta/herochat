@@ -57,6 +57,7 @@ object BigBoss {
   case object StopSpeaking
 
   /* TODO: is there a way to not define a case class for every user state? */
+  /* TODO: Could implement some kind of database + DSL */
   case class SetNickname(uuid: UUID, newName: String)
   case class SetMuteUser(uuid: UUID, setMute: Boolean)
   case class SetDeafenUser(uuid: UUID, setDeafen: Boolean)
@@ -67,6 +68,10 @@ object BigBoss {
   case class SetPTTDelay(delay: FiniteDuration)
   case class SetPTTShortcut(shortcut: Settings.KeyBinding)
   case object SaveSettings
+  /** UI Property:
+   *  requuestChange: called from UI, validate change
+   *  onChange: -> update our state, send message to UI 
+   */
 
   case object CloseFile
   case class ReadFile(filename: String)
@@ -110,7 +115,7 @@ object BigBoss {
  * TODO: audio probably playing too fast/slow not sure which, decoding from opus at 48k, playing at 44.1k
  */
 class BigBoss(
-    var settings: Settings,
+    settings: Settings,
     record: Boolean,
     settingsFilename: Option[String],
   ) extends Actor with ActorLogging {

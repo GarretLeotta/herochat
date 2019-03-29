@@ -48,7 +48,7 @@ object MVCAkkaTest extends App {
   //val bigBossT3 = system.actorOf(BigBoss.props(41333, User(3, "Memetic Champion"), false), "bigbosst3")
   //val bigBossT4 = system.actorOf(BigBoss.props(41334, User(4, "Moomoo Missus"), false), "bigbosst4")
 
-  var testFunctions = scala.collection.mutable.Map[String, Array[String] => Unit]()
+  val testFunctions = scala.collection.mutable.Map[String, Array[String] => Unit]()
   testFunctions("doNothing") = (x: Array[String]) => {
     Vector(
       (0.5 seconds, killswitch, ShutDown),

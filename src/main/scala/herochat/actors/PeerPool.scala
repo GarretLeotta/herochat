@@ -17,7 +17,7 @@ object PeerPool {
  */
 class PeerPool(
     val id: UUID,
-    var settings: Settings,
+    val settings: Settings,
     settingsFilename: Option[String],
   ) extends Actor with ActorLogging {
 

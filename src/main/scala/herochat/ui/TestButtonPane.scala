@@ -26,9 +26,9 @@ import ghook.GlobalHook
  * somewhere else so I can delete this file
  */
 class TestButtonPane(
-    var stylesheet: String,
-    var localPeer: ObjectProperty[Peer],
-    var joinLink: StringProperty
+    val stylesheet: String,
+    val localPeer: ObjectProperty[Peer],
+    val joinLink: StringProperty
   )(implicit val viewActor: ActorRef) {
   def msgButton(text: String, msg: Any) = {
     new Button(text) {

@@ -19,9 +19,9 @@ import herochat.SnakeController.ToModel
 
 class OptionsPane(
     settings: Settings,
-    var localPeer: ObjectProperty[Peer],
-    var pttShortcut: ObjectProperty[Settings.KeyBinding],
-    var pttDelay: DoubleProperty,
+    val localPeer: ObjectProperty[Peer],
+    val pttShortcut: ObjectProperty[Settings.KeyBinding],
+    val pttDelay: DoubleProperty,
   )(implicit val viewActor: ActorRef) extends BorderPane {
 
   val audioTab = new OptionsAudioPane(settings)
@@ -29,8 +29,8 @@ class OptionsPane(
   val shortcutTab = new OptionsShortcutPane(pttShortcut, pttDelay)
   val networkTab = new OptionsNetworkPane(settings)
 
-  var selectedTab =  ObjectProperty[Pane](this, "selectedTab", userTab)
-  var activeTabs = new ObservableBuffer[Tuple2[String, Pane]]()
+  val selectedTab =  ObjectProperty[Pane](this, "selectedTab", userTab)
+  val activeTabs = new ObservableBuffer[Tuple2[String, Pane]]()
   activeTabs.append(
     ("User", userTab),
     ("Audio", audioTab),

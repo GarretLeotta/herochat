@@ -11,7 +11,7 @@ import javax.sound.sampled.{DataLine, TargetDataLine, AudioSystem, AudioFormat, 
 
 import scodec.bits.ByteVector
 
-import herochat.{AudioEncoding, AudioData}
+import herochat.{AudioEncoding, AudioData, AudioUtils}
 
 object Recorder {
   def props(lineInfo: DataLine.Info, mixerInfo: Mixer.Info): Props = Props(classOf[Recorder], lineInfo, mixerInfo)
@@ -29,22 +29,18 @@ object Recorder {
 class Recorder(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor with ActorLogging {
   import context._
 
-  //sbt compatibility
-  val cl = classOf[javax.sound.sampled.AudioSystem].getClassLoader
-  val old_cl: java.lang.ClassLoader = Thread.currentThread.getContextClassLoader
-  Thread.currentThread.setContextClassLoader(cl)
   override def postStop {
     log.debug(s"stopping javax line")
     targetLine.stop()
     targetLine.close()
-    log.debug(s"Stopping $self, resetting thread context class loader")
-    Thread.currentThread.setContextClassLoader(old_cl)
   }
 
   log.debug(s"Recorder starting on Mixer: $mixerInfo")
   //set up javax Sound Stuff
-  val inMixer = AudioSystem.getMixer(mixerInfo)
-  val targetLine = inMixer.getLine(lineInfo).asInstanceOf[TargetDataLine]
+  val inmix = AudioUtils.sbtCompatibilityBlock {
+    AudioSystem.getMixer(mixerInfo)
+  }
+  val targetLine = inmix.getLine(lineInfo).asInstanceOf[TargetDataLine]
   //Open and start the target line
   log.debug(s"starting javax line")
   targetLine.open()
@@ -53,8 +49,9 @@ class Recorder(lineInfo: DataLine.Info, mixerInfo: Mixer.Info) extends Actor wit
 
   def handle_out(actor: ActorRef) = {}
 
-  var subscribers = scala.collection.mutable.Set[ActorRef]()
-  var buf: Array[Byte] = Array.ofDim[Byte](lineInfo.getMaxBufferSize)
+  val subscribers = scala.collection.mutable.Set[ActorRef]()
+  /* TODO: I'm mutating array, isn't it supposed to be immutable? Am I cheating? */
+  val buf: Array[Byte] = Array.ofDim[Byte](lineInfo.getMaxBufferSize)
 
   /**
    * two states: active and inactive

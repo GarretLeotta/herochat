@@ -35,17 +35,17 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
   println(s"gui initialized with view: $viewActor")
 
   //used to enable/disable certain buttons, modify user settings in options pane
-  var localPeerProp = ObjectProperty[Peer](this, "localPeer", settings.userSettings)
-  var joinLink = new StringProperty(this, "joinLink")
+  val localPeerProp = ObjectProperty[Peer](this, "localPeer", settings.userSettings)
+  val joinLink = new StringProperty(this, "joinLink")
 
-  var pttShortcut = ObjectProperty[Settings.KeyBinding](this, "pttShortcut", settings.shortcuts.getOrElse("ptt", null))
-  var pttDelay = new DoubleProperty(this, "pttDelay", settings.pttDelayInMilliseconds.toMillis)
+  val pttShortcut = ObjectProperty[Settings.KeyBinding](this, "pttShortcut", settings.shortcuts.getOrElse("ptt", null))
+  val pttDelay = new DoubleProperty(this, "pttDelay", settings.pttDelayInMilliseconds.toMillis)
 
-  var usersInLobby = ObservableBuffer[Peer]()
-  var userMap = ObservableMap[UUID, Peer]()
-  //var serverList = ObservableBuffer[User]()
+  val usersInLobby = ObservableBuffer[Peer]()
+  val userMap = ObservableMap[UUID, Peer]()
+  //val serverList = ObservableBuffer[User]()
 
-  var messages = ObservableBuffer[ChatMessage]()
+  val messages = ObservableBuffer[ChatMessage]()
 
   val stylesheet = getClass.getResource("styles.css").toExternalForm
 

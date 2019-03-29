@@ -32,7 +32,7 @@ class Encoder(sampleLenMillis: Int, sampleRate: SampleFrequency, nChannels: Int)
   val enc = OpusEncoder(sampleRate, nChannels, Voip)
   enc.reset
 
-  var subscribers = scala.collection.mutable.Set[ActorRef]()
+  val subscribers = scala.collection.mutable.Set[ActorRef]()
 
   def OpusEncodeAndSend(buf: Array[Short], endOfSegment: Boolean): Unit = {
     if (endOfSegment) log.debug(s"encoding endOfSegment")
@@ -50,8 +50,6 @@ class Encoder(sampleLenMillis: Int, sampleRate: SampleFrequency, nChannels: Int)
   /* Accepted buf sizes: 120, 240, 480, or 960 */
   /* Opus Encoder encodes nShorts at a time */
   val nShorts = sampleRate() * sampleLenMillis / 1000 * nChannels
-
-  var debug_print_limit = 0
 
   def active: Receive = {
     case AddSubscriber(sub) =>

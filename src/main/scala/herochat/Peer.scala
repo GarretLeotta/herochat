@@ -15,8 +15,6 @@ case class Peer(
     val volume: Double,
 )
 
-
-
 object PeerState {
   abstract class PeerStateChange(val peer: Peer)
   case class NewPeer(override val peer: Peer) extends PeerStateChange(peer)

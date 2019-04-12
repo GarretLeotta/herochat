@@ -16,7 +16,7 @@ import scalafx.stage.{Stage}
 import javafx.event.ActionEvent
 
 
-import herochat.{Peer, ChatMessage, HcView}
+import herochat.{Peer, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
@@ -29,7 +29,7 @@ class TestButtonPane(
     val stylesheet: String,
     val localPeer: ObjectProperty[Peer],
     val joinLink: StringProperty
-  )(implicit val viewActor: ActorRef) {
+  )(implicit val viewActor: ActorRef) extends ButtonBar {
   def msgButton(text: String, msg: Any) = {
     new Button(text) {
       onAction = (event: ActionEvent) =>  {
@@ -90,21 +90,20 @@ class TestButtonPane(
       stage.show()
     }
   }
+  
   //HcView.ShowToast("Test Toast)", Toast.Info)
-  val content = new ButtonBar {
-    buttons = ObservableBuffer[Button](
-      msgButton("Settings", HcView.ShowOptions),
-      inviteButton,
-      connButton,
-      msgButton("Disconnect", HcView.DisconnectFromLobby),
-      msgButton("Mute", ToModel(BigBoss.SetMuteUser(localPeer().id, true))),
-      msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localPeer().id, false))),
-      /*
-      msgButton("Speak", ToModel(BigBoss.StartSpeaking)),
-      msgButton("Don't speak", ToModel(BigBoss.StopSpeaking)),
-      */
-    )
-    buttonOrder = "U+"
-    padding = Insets(5)
-  }
+  buttons = ObservableBuffer[Button](
+    msgButton("Settings", HcView.ShowOptions),
+    inviteButton,
+    connButton,
+    msgButton("Disconnect", HcView.DisconnectFromLobby),
+    msgButton("Mute", ToModel(BigBoss.SetMuteUser(localPeer().id, true))),
+    msgButton("UnMute", ToModel(BigBoss.SetMuteUser(localPeer().id, false))),
+    /*
+    msgButton("Speak", ToModel(BigBoss.StartSpeaking)),
+    msgButton("Don't speak", ToModel(BigBoss.StopSpeaking)),
+    */
+  )
+  buttonOrder = "U+"
+  padding = Insets(5)
 }

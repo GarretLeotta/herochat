@@ -16,7 +16,7 @@ import javafx.event.ActionEvent
 import java.net.{InetSocketAddress, InetAddress}
 
 
-import herochat.{ChatMessage, HcView, Settings}
+import herochat.{HcView, Settings}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 
@@ -32,8 +32,7 @@ class OptionsNetworkPane(settings: Settings)(implicit val viewActor: ActorRef) e
   /* TODO: create a comboBox[T] */
   def addressComboBox(
       addrs: ObservableBuffer[InetAddress],
-      currentAddress: ObjectProperty[InetAddress],
-      msgFunc: () => Any): ComboBox[InetAddress] = {
+      currentAddress: ObjectProperty[InetAddress] ): ComboBox[InetAddress] = {
     val comboBox = new ComboBox[InetAddress] {
       items = addrs
       cellFactory = { p =>
@@ -47,20 +46,20 @@ class OptionsNetworkPane(settings: Settings)(implicit val viewActor: ActorRef) e
         }
       }
       value <==> currentAddress
-      onAction = { ae: ActionEvent =>
-        viewActor ! msgFunc()
-      }
     }
     comboBox
   }
-  def changeAddressMsg(): Any =
-    ToModel(BigBoss.SetListenAddress(new InetSocketAddress(localAddress(), localPort())))
+  def changeAddressMsg(ae: ActionEvent): Unit = {
+    println(s"gui change addr: ${Option(localAddress())}, ${Option(localPort())}")
+    Option(localAddress()).foreach { addr =>
+      Option(localPort()).foreach { port =>
+          println(s"sending message, $addr, $port")
+          viewActor ! ToModel(BigBoss.SetListenAddress(new InetSocketAddress(addr, port)))
+      }
+    }
+  }
 
-  val addressSelectBox = addressComboBox(
-    localAddresses,
-    localAddress,
-    changeAddressMsg
-  )
+  val addressSelectBox = addressComboBox(localAddresses, localAddress)
 
   val portForm = new HBox {
     children = Array(
@@ -69,11 +68,8 @@ class OptionsNetworkPane(settings: Settings)(implicit val viewActor: ActorRef) e
         text = "Not Implemented"
         editable = false
       },
-      new Button("OK") {
-        onAction = (event: ActionEvent) => {
-          println("doesn't work yet")
-          viewActor ! changeAddressMsg()
-        }
+      new Button("Change Address + Port") {
+        onAction = changeAddressMsg
       },
     )
   }

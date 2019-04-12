@@ -36,6 +36,40 @@ import herochat.ui.{Toast}
 
 import javax.sound.sampled.{DataLine, TargetDataLine, SourceDataLine, AudioSystem, Mixer}
 
+
+object Propagate {
+  //RequestChange => called from UI, validate change
+  //OnChange => Update our state, send message back to UI
+  //Message case class for Receive
+
+  trait Propagatable[T] {
+    def changeProperty(newVal: T): ChangeProperty[T]
+    def propertyChanged(newVal: T): PropertyChanged[T]
+  }
+
+  case class ChangeProperty[T](prop: Propagatable[T], newVal: T)
+  case class PropertyChanged[T](prop: Propagatable[T], newVal: T)
+
+  object NumberLike {
+    implicit object PropagatableInt extends Propagatable[Int] {
+
+      def changeProperty(newVal: Int): ChangeProperty[Int] = ChangeProperty(this, newVal)
+      def propertyChanged(newVal: Int): PropertyChanged[Int] = PropertyChanged(this, newVal)
+    }
+  }
+}
+
+/*
+case statement (identify message) extract variables
+  call method with variables
+
+e.g.
+
+case SetDeafenUser(uuid, setDeafen) =>
+  setDeafen(uuid, setDeafen)
+*/
+
+
 object BigBoss {
   def props(settings: Settings, record: Boolean, settingsFilename: Option[String]): Props = Props(classOf[BigBoss], settings, record, settingsFilename)
   //connection commands
@@ -46,6 +80,9 @@ object BigBoss {
   //Peer creation messages
   case class IncomingConnection(remoteAddress: InetSocketAddress, localAddress: InetSocketAddress, socketRef: ActorRef)
   case class PeerShook(remoteAddress: InetSocketAddress, remoteUUID: UUID, peerRef: ActorRef, remotePexAddress: InetSocketAddress)
+
+
+  //Everything below is mostly UI messaging
 
   //chat commands
   case class Shout(msg: String)
@@ -68,10 +105,6 @@ object BigBoss {
   case class SetPTTDelay(delay: FiniteDuration)
   case class SetPTTShortcut(shortcut: Settings.KeyBinding)
   case object SaveSettings
-  /** UI Property:
-   *  requuestChange: called from UI, validate change
-   *  onChange: -> update our state, send message to UI 
-   */
 
   case object CloseFile
   case class ReadFile(filename: String)
@@ -93,6 +126,8 @@ object BigBoss {
 
   case class ShowErrorMessage(msg: String)
 
+
+
   case object DebugPrintConnectedPeers
   //Log Decoded audio
   //case class StartLoggingPeer(addr: InetSocketAddress, filename: String)
@@ -100,12 +135,6 @@ object BigBoss {
 }
 
 /**
- * Top Level Actor. Creates connections to new peers, parent of all in the system.
- * WRONG! Snake is our lord and master
- *
- * Timed loop for mixing and sending to javax line, every X seconds, take data from buffers, mix together
- * send to javax
- *
  * Invariants we need to enforce: one Peer per BigBoss-BigBoss pair; BigBoss cannot connect to itself
  *
  * TODO: state transition stuff for peers:
@@ -134,16 +163,26 @@ class BigBoss(
 
   //IP address we listen for new connections on
   /* TODO: handle failing to find public ip address */
+  /* TODO: handle address from settings */
   /* TODO: settings localAddress is a preference, alert user if that address is no longera available */
   var listenAddress = new InetSocketAddress(Tracker.findPublicIp().get, settings.localPort)
-  var connHandler = context.actorOf(ConnectionHandler.props(listenAddress), s"hc-connection-handler-${listenAddress.getPort}")
+  var connHandler = newConnHandler(listenAddress)
+  def newConnHandler(listenAddress: InetSocketAddress): ActorRef = {
+    /*
+    val toRemove = "ilr".toSet
+    val words = sentence.filterNot(toRemove)
+    */
+    val name = s"hc-connection-handler-${listenAddress.toString.drop(1)}"
+    context.actorOf(ConnectionHandler.props(listenAddress), name)
+  }
 
+  /*
   val localAddrs = Tracker.allLocalAddresses
   log.debug(s"TESTIP: ${Tracker.findPublicIp().get} :: ${localAddrs.mkString(" :: ")}")
   localAddrs.foreach { addr =>
-    log.debug(s"addr $addr :: ${addr.getCanonicalHostName}, ${addr.getHostAddress}, ${addr.getHostName}, ${addr.isAnyLocalAddress}, ${addr.isLinkLocalAddress}, ${addr.isLoopbackAddress}, ${addr.isMCGlobal}, ${addr.isMCLinkLocal}, ${addr.isMCNodeLocal}, ${addr.isMCOrgLocal}, ${addr.isMCSiteLocal}, ${addr.isMulticastAddress}, ${addr.isSiteLocalAddress}")
+    log.debug(s"addr $addr, ${Tracker.encodeIpToUrl(new InetSocketAddress(addr, 41330)).get} :: ${addr.getCanonicalHostName}, ${addr.getHostAddress}, ${addr.getHostName}, ${addr.isAnyLocalAddress}, ${addr.isLinkLocalAddress}, ${addr.isLoopbackAddress}, ${addr.isMCGlobal}, ${addr.isMCLinkLocal}, ${addr.isMCNodeLocal}, ${addr.isMCOrgLocal}, ${addr.isMCSiteLocal}, ${addr.isMulticastAddress}, ${addr.isSiteLocalAddress}")
   }
-
+  */
 
   /* TODO: support multiple simultaneous file reads/writes */
   val filereader = context.actorOf(FileReader.props(), "hc-filereader")
@@ -183,7 +222,6 @@ class BigBoss(
     peerTuple._2 ! PeerActor.Disconnect
     encoder ! RemoveSubscriber(peerTuple._2)
     peerTable.shookPeers -= peerTuple
-    //parent ! HcView.RemovePeer(peerTuple._5)
   }
 
   /* TODO: replace this */
@@ -484,7 +522,8 @@ class BigBoss(
       } else {
         connHandler ! PoisonPill
         listenAddress = addr
-        connHandler = context.actorOf(ConnectionHandler.props(listenAddress), s"hc-connection-handler-${listenAddress.getPort}")
+        /* BUG: if user changes address really quickly, can crash BigBoss with an InvalidActorNameException */
+        connHandler = newConnHandler(listenAddress)
         peerTable.shakingPeers.foreach( _._2 ! PeerActor.SetListenAddress(addr) )
         peerTable.shookPeers.foreach( _._2 ! PeerActor.SetListenAddress(addr) )
       }

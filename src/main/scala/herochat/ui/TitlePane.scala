@@ -10,9 +10,8 @@ import scalafx.scene.control.{Label}
 import scalafx.scene.text.{Font, FontWeight, Text}
 
 
-class TitlePane(implicit val viewActor: ActorRef) {
-  val content = new Label("Herochat") {
-    font = Font.font(null, FontWeight.Bold, 20)
-    alignmentInParent = Pos.CenterLeft
-  }
+class TitlePane(implicit val viewActor: ActorRef) extends Label {
+  text = "Herochat"
+  font = Font.font(null, FontWeight.Bold, 20)
+  alignmentInParent = Pos.CenterLeft
 }

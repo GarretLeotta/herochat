@@ -16,7 +16,7 @@ import javafx.event.ActionEvent
 
 import javax.sound.sampled.{Mixer}
 
-import herochat.{Peer, ChatMessage, HcView}
+import herochat.{Peer, HcView}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 

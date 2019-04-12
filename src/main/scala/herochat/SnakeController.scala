@@ -7,7 +7,6 @@ import scalafx.embed.swing.SFXPanel
 
 import actors.{BigBoss}
 
-
 object SnakeController {
   def props(killswitch: ActorRef, recordAudio: Boolean, settingsFilename: Option[String]): Props = Props(classOf[SnakeController], killswitch, recordAudio, settingsFilename)
 
@@ -40,8 +39,6 @@ class SnakeController(
     case ToView(msg) => view ! msg
     case ToModel(msg) => model ! msg
 
-    /* TODO: get rid of this */
-    case msg: ChatMessage => view ! msg
     case ShutDown => killswitch ! ShutDown
     case _ @ msg => log.debug(s"Bad Msg: $msg, $sender")
   }

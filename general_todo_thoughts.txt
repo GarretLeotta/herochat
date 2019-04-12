@@ -1,9 +1,10 @@
 PRESSING PROBLEMS
+  BUG: maybe: with no connections, self peer doesn't appear under lobby
+  TODO: improve UI when not connected to any lobbies
+  TODO: feedback when changing UI, other settings
   add reconnect - more complicated than initially thought, might want to use confirmclose?
   test on other computers
     only compatible with jre8
-
-More dialog info to user, inform them when connection fails
 
 
 SETTINGS FILE
@@ -25,6 +26,14 @@ ENCRYPTION
   to own
   TLS
   OCB-AES128 for encrypted voice comms
+    not implemented in java/scala.
+
+HAD THE END-SEGMENT BUG HAPPEN AGAIN:
+  Little bits of audio kept playing after stopped talking. Not sure what the cause was.
+  Not sure how to reproduce
+
+  Should clear play buffers if we haven't received any audio in bufferSizeInSeconds or so
+  This way the replay bug won't happen if the peer is a bad actor and doesn't send EndOfSegment
 
 PROBLEM:
 PlayQueue & Recorder actors pretty much block up a thread in the javax write function.
@@ -33,10 +42,6 @@ What happens with a lot of inactive peers? -> Inactive PlayQueues
 Need to run benchmarks:
   lot of inactive peers
   lot of peers talking at once
-
-HAD THE END-SEGMENT BUG HAPPEN AGAIN:
-  Little bits of audio kept playing after stopped talking. Not sure what the cause was.
-  Not sure how to reproduce
 
 PERFORMANCE STUFF:
   Rudimentary measurements/findings:
@@ -68,7 +73,3 @@ NOISE REDUCTION
     doesn't work well, weird artifacts when I start talking + elsewhere.
     Probably want to go for a simple solution, collect data
   SpeexDSP - already linked to it anyway
-
-
-Should clear play buffers if we haven't received any audio in bufferSizeInSeconds or so
-This way the replay bug won't happen if the peer is a bad actor and doesn't send EndOfSegment

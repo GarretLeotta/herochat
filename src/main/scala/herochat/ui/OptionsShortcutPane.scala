@@ -22,7 +22,7 @@ import javax.sound.sampled.{Mixer}
 
 import ghook.GlobalHook
 
-import herochat.{Peer, ChatMessage, HcView, Settings}
+import herochat.{Peer, HcView, Settings}
 import herochat.actors.BigBoss
 import herochat.SnakeController.ToModel
 

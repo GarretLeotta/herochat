@@ -26,7 +26,7 @@ import herochat.SnakeController.ToModel
 class LobbyPane(
     val pmap: ObservableMap[UUID, Peer],
     val localPeer: ObjectProperty[Peer]
-  )(implicit val viewActor: ActorRef) {
+  )(implicit val viewActor: ActorRef) extends VBox {
   val title = new Label("Lobby") {
     font = Font.font(null, FontWeight.Bold, 12)
     alignmentInParent = Pos.Center
@@ -163,10 +163,5 @@ class LobbyPane(
     new ContextMenu(menuItems:_*)
   }
 
-
-
-
-  val content = new VBox {
-    children = ObservableBuffer(title, lobby_list)
-  }
+  children = ObservableBuffer(title, lobby_list)
 }

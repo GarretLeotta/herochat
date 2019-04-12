@@ -22,7 +22,7 @@ import java.util.UUID
 import javax.sound.sampled.{Mixer}
 
 import herochat.actors.{BigBoss}
-import herochat.ui.Toast
+import herochat.ui.{Toast, ChatMessage}
 import herochat.SnakeController.ToModel
 
 object HcView {
@@ -37,11 +37,6 @@ object HcView {
   case object DisconnectFromLobby
 
   case class SendMessage(msg: String)
-
-  /* AddPeer and updateState are currently the same */
-  case class AddPeer(peerState: Peer)
-  case class UpdatePeerState(newState: Peer)
-  case class RemovePeer(uuid: UUID)
 
   case class InputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])
   case class OutputMixers(currentMixer: Mixer.Info, mixers: Array[Mixer.Info])

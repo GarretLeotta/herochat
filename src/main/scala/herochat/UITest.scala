@@ -77,23 +77,43 @@ object MVCAkkaTest extends App {
   def testUI(args: Array[String]): Unit = {
     val controller = system.actorOf(SnakeController.props(killswitch, true, None), s"hcController")
     val bigBossT1 = system.actorOf(FakeController.props(killswitch, false, Some("settings.1.json")), "fakeCtrl1")
-    //val bigBossT2 = system.actorOf(BigBoss.props(41332, User(new UUID(0,2), "Momomonkey"), false), "bigbosst2")
     import java.util.UUID
     val testUUID = UUID.fromString("86bda808-561b-42cf-9e63-f4c3b43905ef")
     val ip6addr = Tracker.findPublicIp().get
     Vector(
-      //(1.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbert"))),
-      (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr, 41330)))),
-      (2.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello"))),
-      (3.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUUID, "Glumbology"))),
-      //(4.0 seconds, bigBossT1, ToModel(BigBoss.Disconnect(new InetSocketAddress("::1", 41330)))),
-      //(5.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress("::1", 41330)))),
-      (5.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello again"))),
-
+      (3.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr, 41330)))),
     ) map {x => scheduleBulkTasks _ tupled x}
   }
   testFunctions("testUI") = testUI
 
+  /* BigBoss with UI (SnakeController) acts as recorder, test changing address */
+  def testChangeAddress(args: Array[String]): Unit = {
+    val controller = system.actorOf(SnakeController.props(killswitch, true, None), s"hcController")
+    val bigBossT1 = system.actorOf(FakeController.props(killswitch, false, Some("settings.1.json")), "fakeCtrl1")
+    val bigBossT2 = system.actorOf(FakeController.props(killswitch, false, Some("settings.2.json")), "fakeCtrl2")
+    val bigBossT3 = system.actorOf(FakeController.props(killswitch, false, Some("settings.3.json")), "fakeCtrl3")
+    import java.util.UUID
+    val testUUID = UUID.fromString("86bda808-561b-42cf-9e63-f4c3b43905ef")
+    val ip6addr = Tracker.findPublicIp().get
+    val ip6addrs = Tracker.allLocalAddresses
+    val ip6addr2 = ip6addrs(1)
+    val ip6addr3 = ip6addrs(2)
+    Vector(
+      //(1.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUser, "Glumbert"))),
+      (2.0 seconds, bigBossT1, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr, 41330)))),
+      (3.0 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello"))),
+      (4.0 seconds, bigBossT1, ToModel(BigBoss.SetNickname(testUUID, "Glumbology"))),
+      (5.5 seconds, bigBossT1, ToModel(BigBoss.Shout("Hello again"))),
+
+      (10 seconds, bigBossT1, ToModel(BigBoss.Shout("Missed the Boat Mate"))),
+      (11.0 seconds, bigBossT2, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr2, 41330)))),
+
+      (20 seconds, bigBossT2, ToModel(BigBoss.Shout("A little late for that?"))),
+      (21.0 seconds, bigBossT3, ToModel(BigBoss.Connect(new InetSocketAddress(ip6addr3, 41330)))),
+
+    ) map {x => scheduleBulkTasks _ tupled x}
+  }
+  testFunctions("testChangeAddress") = testChangeAddress
 
   /* BigBoss with UI (SnakeController) acts as recorder, bunch of FakeControllers connect */
   def testABunch(args: Array[String]): Unit = {

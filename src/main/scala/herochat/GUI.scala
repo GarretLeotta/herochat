@@ -24,10 +24,6 @@ import javax.sound.sampled.{Mixer}
 
 import herochat.ui._
 
-case class ChatMessage(sender: Peer, msg: String) {
-  override def toString = s"${sender.nickname}: $msg"
-}
-
 /**
  * TODO: extend slider class, display value of slider floating above knob, in a little label or something
  */
@@ -57,11 +53,11 @@ class HcGUI(settings: Settings)(implicit val viewActor: ActorRef) extends JFXApp
   val primaryToaster = new Toaster(timer)
   val defaultScenePane = new StackPane {
     children = Seq(new BorderPane {
-      top = new TitlePane().content
-      left = new LobbyPane(userMap, localPeerProp).content
-      center = new ChatPane(messages).content
+      top = new TitlePane()
+      left = new LobbyPane(userMap, localPeerProp)
+      center = new ChatPane(messages)
       //right = new ServerPane(serverList).content
-      bottom = new TestButtonPane(stylesheet, localPeerProp, joinLink).content
+      bottom = new TestButtonPane(stylesheet, localPeerProp, joinLink)
     }, primaryToaster)
   }
 

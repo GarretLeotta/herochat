@@ -38,6 +38,7 @@ object GCodecs {
 }
 
 /**
+ * TODO: write up a spec for this protocol, test the spec
  */
 object HcCodec {
   import GCodecs._
